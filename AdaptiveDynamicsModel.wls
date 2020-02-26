@@ -87,11 +87,20 @@
 
 
 (* ::Input:: *)
-(*Table[displayParameters[pW,pP,pP2,kW,kH,kP,kH2,kP2,hW,hP,hP2,lW,lH,lH2,lP,lP2,a, a2,aP,aP2,d,d2,eta,phi, eta2,phi2,c,cP,iIn][[1]],{pP,2.7,3.0,0.1}]*)
+(*Table[displayParameters[pW,pP,pP2,kW,kH,kP,kH2,kP2,hW,hP,hP2,lW,lH,lH2,lP,lP2,a, a2,aP,aP2,0.5,d2,eta,phi, eta2,phi2,c,cP,iIn],{pP,2.7,3.0,0.1}]*)
 
 
 (* ::Input:: *)
-(*Plot[{w[t]/.%185[[1]],p[t]/.%185[[1]],h[t]/.%185[[1]]},{t,0,200},PlotStyle->{Blue,Black,Green},Frame->True, FrameLabel->{{"Population size",None},{"Time",None}},PlotLabel->"pP=0.7,d=0.5",PlotLegends->{"Prey","Predator with plastid", "Predator without Plastid"}, PlotRange->{Automatic,{0,9}}]*)
+(*Clear[pW,pP,pP2,kW,kH,kP,kH2,kP2,hW,hP,hP2,lW,lH,lH2,lP,lP2,a, a2,aP,aP2,d,d2,eta,phi, eta2,phi2,c,cP,iIn]*)
+
+
+(* ::Input:: *)
+(*Table[ReleaseHold[Hold[displayParameters[pW,pP,pP2,kW,kH,kP,kH2,kP2,hW,hP,hP2,lW,lH,lH2,lP,lP2,a, a2,aP,aP2,d,d2,eta,phi, eta2,phi2,c,cP,iIn][[1]]]/.{pW->3,pP2->2.9,kW->0.1,kH->0.05,kP->0.15,kH2->0.015,kP2->0.15,hW->30,hP->30,hP2->30,lW->0.5,lH->0.5,lH2->0.5,lP->0.1,lP2->0.1,a->0.15,a2->0.15,aP->0,aP2->0,d->0.5,d2->0.5,eta->0,eta2->0,phi->1,phi2->1, c->0.1,cP->0.1,iIn->10}],{pP,2.7,3.0,0.1}]*)
+(*Export["Varying-pP-02-26-2020.pdf",Plot[{w[t]/.%[[1]],p[t]/.%[[1]],h[t]/.%[[1]]},{t,0,200},PlotStyle->{Blue,Black,Green},Frame->True, FrameLabel->{{"Population size",None},{"Time",None}},PlotLabel->"pP=0.7,d=0.5",PlotLegends->{"Prey","Predator with plastid", "Predator without Plastid"}, PlotRange->{Automatic,{0,9}}]]*)
+
+
+(* ::Input:: *)
+(*Directory[]*)
 
 
 (* ::Input:: *)
