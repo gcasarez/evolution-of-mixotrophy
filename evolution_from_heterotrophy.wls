@@ -464,6 +464,9 @@ evolutionSimsCE = Join[evolutionSimsCEmost[[1;;7]], evolutionSimsCE29, evolution
 Export["evolutionSimsCE_10e-6_light22-30.wdx", evolutionSimsCE];
 
 
+evolutionSimsCE = Import["evolutionSimsCE_10e-6_light22-30.wdx"];
+
+
 (* ::Subsubsection::Closed:: *)
 (*Plot the trait values vs. time (just to see what's going on)*)
 
@@ -475,7 +478,7 @@ ListLinePlot[evolutionSimsCE[[i, All, 2]], Frame -> True, FrameLabel -> {"Time (
 ImageSize -> 800]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Simulate strict heterotroph at low light (light 20-21 micromol photons/m^2/s)*)
 
 
@@ -604,6 +607,9 @@ evolutionSimsCEAR = Join[evolutionSimsCEARmost[[1;;7]], evolutionSimsCEAR29, evo
 Export["evolutionSimsCEAR_10e-6_light22-30.wdx", evolutionSimsCEAR];
 
 
+evolutionSimsCEAR = Import["evolutionSimsCEAR_10e-6_light22-30.wdx"];
+
+
 (* ::Subsubsection:: *)
 (*Plot the trait values vs. time (just to see what's going on)*)
 
@@ -703,90 +709,46 @@ Export["evo_from_heterotrophy.pdf", %];
 (*Plot all evolutionary trajectories together*)
 
 
-trajectoryPlotsCEAR = Table[{
-ListLinePlot[evolutionSimsCEAR[[i, All, 1]], Frame -> True, PlotRange -> {Automatic, {0, 1}}, PlotStyle -> "FuchsiaTones",
+(* ::Text:: *)
+(*Conversion trade-off*)
+
+
+trajectoryPlotsCE = Table[{
+ListLinePlot[evolutionSimsCE[[i + Length[lowerLightLevels], All, 1]], Frame -> True, PlotRange -> {Automatic, {0, 1}}, PlotStyle -> Directive[Thin, Gray, Opacity[0.5]],
 FrameLabel -> {"Time (in mutations that have arisen)", "Retention probability (phi)"}, PlotRangePadding -> 0.025, ImageSize -> 350,
 PlotLabel -> "(" <> ToUpperCase[Alphabet[][[1 + 2*(i - 1)]]] <> ") Retention: Light = " <> ToString[simLightLevels[[i]]] <> " \[Mu]mol photons/m^2/day"],
 
-ListLinePlot[evolutionSimsCEAR[[i, All, 2]], Frame -> True, PlotRange -> {Automatic, {0, 1}}, PlotStyle -> "FuchsiaTones",
+ListLinePlot[evolutionSimsCE[[i + Length[lowerLightLevels], All, 2]], Frame -> True, PlotRange -> {Automatic, {0, 1}}, PlotStyle -> Directive[Thin, Gray, Opacity[0.5]],
 FrameLabel -> {"Time (in mutations that have arisen)", "Replication probability (eta)"},  PlotRangePadding -> 0.025, ImageSize -> 350,
 PlotLabel -> "(" <> ToUpperCase[Alphabet[][[2*i]]] <> ") Replication: Light = " <> ToString[simLightLevels[[i]]] <> " \[Mu]mol photons/m^2/day"]}, 
 {i, Length[simLightLevels]}];
 
 
-Export["trajectories_cear.pdf", GraphicsGrid[Transpose[Flatten[Partition[trajectoryPlotsCEAR, 2], {2, 3}]]]]
+trajectoryPlotsCE = GraphicsGrid[Transpose[Flatten[Partition[trajectoryPlotsCE, 2], {2, 3}]], Frame -> {None, All, {{1, 4}, {1, 2}} -> True}];
+
+
+Export["trajectories_ce.pdf", trajectoryPlotsCE]
 
 
 (* ::Text:: *)
-(*Set the colors for trajectories, colored by light level*)
+(*Attack & conversion trade-offs*)
 
 
-linePlotColors = (ColorData["FuchsiaTones"] /@ Subdivide[3])[[1;;3]];
-(* Repeat each of the colors 20 times, for the 20 simulations at each of the light levels *)
-replicateSimColors = linePlotColors[[Flatten[Table[i, {i, 3}, 20], 1]]];
+trajectoryPlotsCEAR = Table[{
+ListLinePlot[evolutionSimsCEAR[[i + Length[lowerLightLevels], All, 1]], Frame -> True, PlotRange -> {Automatic, {0, 1}}, PlotStyle -> Directive[Thin, Gray, Opacity[0.5]],
+FrameLabel -> {"Time (in mutations that have arisen)", "Retention probability (phi)"}, PlotRangePadding -> 0.025, ImageSize -> 350,
+PlotLabel -> "(" <> ToUpperCase[Alphabet[][[1 + 2*(i - 1)]]] <> ") Retention: Light = " <> ToString[simLightLevels[[i]]] <> " \[Mu]mol photons/m^2/day"],
+
+ListLinePlot[evolutionSimsCEAR[[i + Length[lowerLightLevels], All, 2]], Frame -> True, PlotRange -> {Automatic, {0, 1}}, PlotStyle -> Directive[Thin, Gray, Opacity[0.5]],
+FrameLabel -> {"Time (in mutations that have arisen)", "Replication probability (eta)"},  PlotRangePadding -> 0.025, ImageSize -> 350,
+PlotLabel -> "(" <> ToUpperCase[Alphabet[][[2*i]]] <> ") Replication: Light = " <> ToString[simLightLevels[[i]]] <> " \[Mu]mol photons/m^2/day"]}, 
+{i, Length[simLightLevels]}];
 
 
-(* ::Text:: *)
-(*Make line plots of evolutionary trajectories, colored by light level*)
+trajectoryPlotsCEAR = GraphicsGrid[Transpose[Flatten[Partition[trajectoryPlotsCEAR, 2], {2, 3}]], Frame -> {None, All, {{1, 4}, {1, 2}} -> True}];
 
 
-(* No trade-offs *)
-noTradeOffsRetentionLinePlot = ListLinePlot[Flatten[evolutionSimsNT[[All, All, 1]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Retention (\[Phi])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-noTradeOffsReplicationLinePlot = ListLinePlot[Flatten[evolutionSimsNT[[All, All, 2]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Replication (\[Eta])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-
-
-(* Conversion efficiency trade-off *)
-conversionTradeOffRetentionLinePlot = ListLinePlot[Flatten[evolutionSimsCE[[All, All, 1]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Retention (\[Phi])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-conversionTradeOffReplicationLinePlot = ListLinePlot[Flatten[evolutionSimsCE[[All, All, 2]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Replication (\[Eta])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-
-
-(* Attack rate trade-off *)
-attackTradeOffRetentionLinePlot = ListLinePlot[Flatten[evolutionSimsAR[[All, All, 1]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Retention (\[Phi])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-attackTradeOffReplicationLinePlot = ListLinePlot[Flatten[evolutionSimsAR[[All, All, 2]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Replication (\[Eta])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-
-
-(* Conversion efficiency and attack rate trade-offs *)
-conversionAndAttackTradeOffRetentionLinePlot = ListLinePlot[Flatten[evolutionSimsCEAR[[All, All, 1]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Retention (\[Phi])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-conversionAndAttackTradeOffReplicationLinePlot = ListLinePlot[Flatten[evolutionSimsCEAR[[All, All, 2]], 1], Frame -> True, FrameLabel -> {"Time (in mutations that have arisen)", "Replication (\[Eta])"}, PlotStyle -> replicateSimColors, ImageSize -> 250, LabelStyle -> 12];
-
-
-(* ::Text:: *)
-(*Assemble the evolutionary trajectory line plots into a labeled grid*)
-
-
-(* Set the label font options here, so we don't have to keep specifying them *)
-SetOptions[Labeled, LabelStyle -> {FontSize -> 12, FontFamily -> "Arial"}];
-
-
-trajectoryPlotGrid = Column[{
-(*Labeled[
-	Row[{ Labeled[noTradeOffsRetentionLinePlot, "(a)", {{Top, Left}}], Labeled[noTradeOffsReplicationLinePlot, "(b)", {{Top, Left}}] }, Spacer[10]],
-	"No trade-offs", {Top}, LabelStyle -> Bold],
-
-Labeled[
-	Row[{ Labeled[attackTradeOffRetentionLinePlot, "(c)", {{Top, Left}}], Labeled[attackTradeOffReplicationLinePlot, "(d)", {{Top, Left}}] }, Spacer[10]],
-	"Attack rate trade-off", {Top}, LabelStyle -> Bold],*)
-
-Labeled[
-	Row[{ Labeled[conversionTradeOffRetentionLinePlot, "(a)", {{Top, Left}}], Labeled[conversionTradeOffReplicationLinePlot, "(b)", {{Top, Left}}] }, Spacer[10]],
-	"Conversion efficiency trade-off", {Top}, LabelStyle -> Bold],
-
-Labeled[
-	Row[{ Labeled[conversionAndAttackTradeOffRetentionLinePlot, "(c)", {{Top, Left}}], Labeled[conversionAndAttackTradeOffReplicationLinePlot, "(d)", {{Top, Left}}] }, Spacer[10]],
-	"Conversion efficiency & attack rate trade-offs", {Top}, LabelStyle -> Bold]
-	
-}, Spacings -> 2, Alignment -> Center, Frame -> All];
-
-
-(* ::Text:: *)
-(*Add a legend to the grid of evolutionary trajectory plots and export*)
-
-
-Grid[{{trajectoryPlotGrid, 
-SwatchLegend[linePlotColors, lightLevels, LegendLabel -> "Surface light\n(\[Mu]mol photons/m^2/s)", LegendMarkerSize -> 10, LegendFunction -> Frame]}},
-Alignment -> {Center, Top}, Spacings -> 1]
-
-Export["2021_12_06_all_evo_trajectories.pdf", %];
+Export["trajectories_cear.pdf", trajectoryPlotsCEAR]
 
 
 (* ::Text:: *)
