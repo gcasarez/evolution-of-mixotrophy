@@ -611,36 +611,40 @@ SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 14
 SetOptions[PointLegend, LabelStyle \[Rule] {FontSize -> 12, FontFamily -> "Arial"}];*)
 
 
-streamPlotsCEAR = Table[
-Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCEAR[[i]]], 
+streamPlotsCE = Table[
+Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCE[[i]]], 
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> "(" <> Capitalize[Alphabet[][[i]]] <> ") Attack tradeoff\nSurface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium], 
+	PlotLabel -> "(" <> Capitalize[Alphabet[][[i]]] <> ") No tradeoff\nSurface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium], 
+	
+	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsCE[[i, All, 1]]*)],
+	
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]}],
+{i, Length[derivsForPlotsCE]}]
+
+streamPlotsCEAR = Table[
+Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsCEAR[[i]]], 
+	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
+	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
+	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
+	PlotLabel -> "(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ") Attack tradeoff\nSurface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium], 
 	
 	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCEAR[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsCEAR[[i, All, 1]]*)],
 	
 	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCEAR[[i, All, 2;;3]]]]}],
 {i, Length[derivsForPlotsCEAR]}]
 
-streamPlotsCE = Table[
-Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsCE[[i]]], 
-	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
-	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
-	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> "(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ") No tradeoff\nSurface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium], 
-	
-	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsCEAR[[i, All, 1]]*)],
-	
-	Graphics[Map[Rectangle[{Max[#[[1]] - 1/20, 0], Max[#[[2]] - 1/20, 0]}, {Min[#[[1]] + 1/20, 1], Min[#[[2]] + 1/20, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]}],
-{i, Length[derivsForPlotsCE]}]
 
-
-Grid[{streamPlotsCEAR, streamPlotsCE, 
-{Row[{PointLegend[{Black}, {"Direction of selection"}, LegendMarkers -> Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], LegendMarkerSize -> 75],
-BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Row", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {450, 25}],
-SwatchLegend[{Black}, {"Mixotroph extinction"}, LegendMarkerSize -> {20, 20}]}],
-SpanFromLeft, SpanFromLeft}}, Spacings -> {2, 3}]
+Column[{Row[{Grid[{streamPlotsCE, streamPlotsCEAR}, Spacings -> {2, 3}], 
+	(* Legend *)
+	Column[{
+		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
+		PointLegend[{Black}, {"Direction of selection"}, LegendMarkers -> Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], LegendMarkerSize -> 75],
+		SwatchLegend[{Black}, {"Mixotroph extinction"}, LegendMarkerSize -> {20, 20}]}, 
+	Frame -> True, Alignment -> {Center, Center}]}, 
+Spacer[50]],
+Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset[Style["Increasing light", 20], Background -> White]}, ImageSize -> {1200, 50}]}]
 Export["stream_plots.pdf", %]
 
 
