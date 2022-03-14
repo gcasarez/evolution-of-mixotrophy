@@ -118,7 +118,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Resident and mutant dynamics*)
 
 
@@ -582,16 +582,25 @@ Show[ListStreamDensityPlot[Map[{#[[1]], {#[[2]], #[[3,1]]}}&, derivsForPlotsCE[[
 (*Color scheme (prey density)*)
 
 
+Histogram[Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCEAR][[All, All, 5]]]]
+
+
+Histogram[Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCE][[All, All, 5]]]]
+
+
 maxPrey = Max[{Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCEAR][[All, All, 5]]],
 	Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCE][[All, All, 5]]]}];
-preyDensityColors[p_] := ColorData["CandyColors"][Sqrt[p/maxPrey] * 3/4 + 1/4]
+preyDensityColors[p_] := ColorData["BeachColors"][Log[1 + p^2]/Log[1 + maxPrey^2]]
+
+
+preyDensityColors[p_] := If[p <= 16.6, ColorData["BeachColors"][(9/10) * Log[1 + p]/Log[1 + 16.6]], ColorData["BeachColors"][9/10 + p/(maxPrey * 10)]]
+
+
+BarLegend[{preyDensityColors[#]&, {0, maxPrey}}]
 
 
 (* ::Text:: *)
 (*Set font*)
-
-
-?Color
 
 
 SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 12, FontFamily -> "Arial", FontColor -> Black}];
@@ -629,7 +638,7 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsCE[[i
 
 Grid[{streamPlotsCEAR, streamPlotsCE, 
 {Row[{PointLegend[{Black}, {"Direction of selection"}, LegendMarkers -> Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], LegendMarkerSize -> 75],
-BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Row", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {250, 25}],
+BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Row", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {450, 25}],
 SwatchLegend[{Black}, {"Mixotroph extinction"}, LegendMarkerSize -> {20, 20}]}],
 SpanFromLeft, SpanFromLeft}}, Spacings -> {2, 3}]
 Export["stream_plots.pdf", %]
