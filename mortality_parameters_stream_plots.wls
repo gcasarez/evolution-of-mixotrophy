@@ -6,6 +6,10 @@
 
 
 (* ::Text:: *)
+(*Note on the parameter c_HP in the paper: In the code we have replaced c_HP with its reciprocal, gamma_C. This doesn't come up anywhere for the user, but just be aware that setting gamma_C = 0.7 in the functions below is equivalent to setting c_HP to 10/7. *)
+
+
+(* ::Text:: *)
 (*These parameters produce evolution to different ESSs at different light levels (25 vs. 1000) with conversion trade +/- attack trade off (same ESSs with either)*)
 (*Removing conversion trade-off means we lose this, partly I think because of changes in ability of the mixotroph to survive/maintain decent population sizes at high retention rates*)
 
@@ -331,7 +335,7 @@ lH = lH2 = 0.25;
 lP = lP2 = 0.35;
 
 
-lightLevels = {25, 35, 50};
+lightLevels = {(*25, 35, *)50};
 
 
 (* ::Subsection:: *)
@@ -391,23 +395,26 @@ noExtinctionPointsCE = Map[Select[#[[4]] == False&], ecoDynamicsCE];
 
 
 derivsForPlotsCE = 
-Map[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]], #[[6]], #[[7]], PrecisionGoal -> 6, AccuracyGoal -> 6, MaxSteps -> 40000, conversionTradeOff -> True, attackTradeOff -> False],
+Map[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]], #[[6]], #[[7]], PrecisionGoal -> 8, AccuracyGoal -> 8, MaxSteps -> 40000, conversionTradeOff -> True, attackTradeOff -> False],
 {#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsCE, {2}];
+
+
+ListStreamDensityPlot[Map[{#[[1]], {#[[2]], #[[3, 1]]}}&, derivsForPlotsCE[[1]], 1], StreamStyle -> White, ColorFunction -> "CandyColors", PlotLegends -> Automatic]
 
 
 (* ::Subsection:: *)
 (*Plots*)
 
 
-maxPrey = Max[{Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCEAR][[All, All, 5]]],
-	Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCE][[All, All, 5]]]}];
+maxPrey = Max[{Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCEAR][[All, All, 5]]](*,
+	Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCE][[All, All, 5]]]*)}];
 preyDensityColors[p_] := ColorData["BeachColors"][Log[1 + p^2]/Log[1 + maxPrey^2]]
 
 
 preyDensityColors[p_] := If[p <= 16.6, ColorData["BeachColors"][(9/10) * Log[1 + p]/Log[1 + 16.6]], ColorData["BeachColors"][9/10 + p/(maxPrey * 10)]]
 
 
-streamPlotsCE = Table[
+(*streamPlotsCE = Table[
 Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCE[[i]]], 
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
@@ -417,7 +424,7 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCE[[
 	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsCE[[i, All, 1]]*)],
 	
 	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]}],
-{i, Length[derivsForPlotsCE]}]
+{i, Length[derivsForPlotsCE]}]*)
 
 streamPlotsCEAR = Table[
 Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsCEAR[[i]]], 

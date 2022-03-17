@@ -5,6 +5,10 @@
 (*Parameters*)
 
 
+(* ::Text:: *)
+(*Note on the parameter c_HP in the paper: In the code we have replaced c_HP with its reciprocal, gamma_C. This doesn't come up anywhere for the user, but just be aware that setting gamma_C = 0.7 in the functions below is equivalent to setting c_HP to 10/7. *)
+
+
 pW = 3;
 gammaP = 2/3;(*2/3;*)(*2.9/3;*)
 sigmaP = 0;
