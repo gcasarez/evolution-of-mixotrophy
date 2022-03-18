@@ -631,7 +631,14 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsCEAR[
 {i, Length[derivsForPlotsCEAR]}]
 
 
-Column[{Row[{Grid[{streamPlotsCE, streamPlotsCEAR}, Spacings -> {2, 3}], 
+Column[{Row[{Grid[
+	(* Some extremely fancy rasterization of the plots without rasterizing their labels (removes the labels, raterizes, and re-adds the labels *)
+	Map[
+		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
+		Append[(FrameLabel /. Options[#])[[All, 1]], Style[(PlotLabel /. Options[#]), 14, TextAlignment -> Center]], {Left, Bottom, Top},
+		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
+	{streamPlotsCE, streamPlotsCEAR}, {2}], 
+Spacings -> {2, 3}], 
 	(* Legend *)
 	Column[{
 		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
@@ -640,6 +647,7 @@ Column[{Row[{Grid[{streamPlotsCE, streamPlotsCEAR}, Spacings -> {2, 3}],
 	Frame -> True, Alignment -> {Center, Center}]}, 
 Spacer[50]],
 Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset[Style["Increasing light", 20], Background -> White]}, ImageSize -> {1200, 50}]}]
+
 Export["stream_plots.pdf", %]
 
 
