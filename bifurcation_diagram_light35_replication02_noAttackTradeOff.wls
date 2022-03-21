@@ -83,7 +83,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Functions to Find Equilibria*)
 
 
@@ -132,7 +132,7 @@ D[{wDot[w, hW,lW, a, pW, k, light, gammaA, replication, retention, 0, 0, sigmaA,
 	{{w, h, p}}]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Solving the system (when we can't find a stable equilibrium*)
 
 
@@ -208,8 +208,10 @@ retentionValues = Table[retention, {retention, 0, 1, 1/20}];
 (*We look across a variety of initial population sizes (guessW, guessH, guessP), in case there are multiple equilibria.*)
 
 
-candidateStableEquils = Table[equilibrium[35, retention, 2/10, {guessW, guessH, guessP}, attackTradeOff -> False, conversionTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6],
-{retention, retentionValues}, {guessW, 1/1000, 50, 5}, {guessH, 0, 50, 5}, {guessP, 0, 50, 5}];
+candidateStableEquils = Table[Check[ (* Check is here to prevent answers that don't meet the specified accuracy/precision from being returned *)
+equilibrium[35, retention, 2/10, {guessW, guessH, guessP}, attackTradeOff -> False, conversionTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6, MaxIterations -> 10000],
+{}, FindRoot::lstol],
+{retention, retentionValues}, {guessW, {1/1000, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40}}, {guessH, {1/1000, 1, 2, 3, 4, 5}}, {guessP, {0, 1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40}}];
 
 
 (* ::Text:: *)
@@ -217,6 +219,13 @@ candidateStableEquils = Table[equilibrium[35, retention, 2/10, {guessW, guessH, 
 
 
 candidateStableEquils = Flatten[candidateStableEquils, {{1}, {2, 3, 4}, {5}}];
+
+
+(* ::Text:: *)
+(*Remove any "candidate" equilibria that are just the empty set*)
+
+
+candidateStableEquils = Map[Select[Length[#] > 0&], candidateStableEquils];
 
 
 (* ::Text:: *)
@@ -300,17 +309,132 @@ PointLegend[{Blue, Directive[Red, Opacity[0.5]]}, {"Stable", "Unstable"}, Legend
 
 
 (* ::Subsubsection:: *)
-(*Step 4: Find positive stable equilibria*)
+(*Step 4: Find nonnegative stable equilibria*)
 
 
 (* ::Text:: *)
-(*We'll *)
+(*Determine whether the prey, heterotroph, and mixotroph population sizes are all nonnegative for each stable equilibrium.*)
+(*We assume populations that are negative and very close to 0 (within 10^-10) are actually 0, and round them to 0 before we do the selection.*)
 
 
-stability = Map[AllTrue[Re[Eigenvalues[#]], Negative]&, jacobiansList, {2}];
+nonNegativePopulations = Map[AllTrue[NonNegative], {w, h, p} /. Chop[stableEquils], {2}];
 
 
-Chop[stableEquils]
+(* ::Text:: *)
+(*Select the stable equilibria with nonnegative populations.*)
+
+
+nonNegativeEquils = Pick[stableEquils, nonNegativePopulations];
+
+
+(* ::Text:: *)
+(*Check how many nonnegative stable equilibria appear at each retention probability*)
+
+
+MapThread[{#1, #2}&, {retentionValues,  Map[Dimensions, nonNegativeEquils][[All, 1]]}] //
+	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Retention", "# Equilibria"}}]&
+
+
+MapThread[N[Chop[{#1, #2, #3, #4}]]&, 
+{retentionValues,
+Pick[w/.stableEquils, nonNegativePopulations],
+Pick[h/.stableEquils, nonNegativePopulations],
+Pick[p/.stableEquils, nonNegativePopulations]}] //TableForm[#, TableHeadings -> {None, {"Retention", "Prey", "Heterotroph", "Phototroph"}}]&
+
+
+(* ::Subsubsection:: *)
+(*Step 5: Investigate points where no positive stable equilibria were found*)
+
+
+(* ::Text:: *)
+(*Determine which stable equilibria have negative populations or all populations essentially 0*)
+(*(We round anything within 10^-10 of 0 to 0.)*)
+
+
+nonPositivePopulations = Map[AnyTrue[#, Negative] || AllTrue[#, NonPositive]&, {w, h, p} /. Chop[stableEquils], {2}];
+
+
+(* ::Text:: *)
+(*Determine which retention probabilities only have nonpositive stable equilibria*)
+
+
+retentionNoPositiveEquil = Pick[retentionValues, Map[AllTrue[#, #1&]&, nonPositivePopulations]]
+
+
+(* ::Text:: *)
+(*For each of these retention probabilities, simulate population dynamics*)
+
+
+simulatedPopDynamics = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, attackTradeOff -> False, conversionTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6],
+{retention, retentionNoPositiveEquil}];
+
+
+(* ::Text:: *)
+(*Check whether any of these populations go extinct*)
+(*(They don't, so we'll move on to plotting them below)*)
+
+
+MapThread[{#1, #2}&, {retentionNoPositiveEquil,  simulatedPopDynamics[[All, 2]]}] //
+	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Retention", "Extinction?"}}]&
+
+
+(* ::Text:: *)
+(*Plot population dynamics*)
+
+
+Table[Plot[Evaluate[{w[t], h[t], p[t]}/.simulatedPopDynamics[[i, 1]]], {t, 3000, 4000},
+PlotLabel -> "Retention = " <> ToString[N[retentionNoPositiveEquil[[i]]]], 
+AxesLabel -> {"Time (days)", "Population size"}, ImageSize -> Medium],
+{i, Length[simulatedPopDynamics]}];
+
+(* This is completely unnecessary. It just arranges things nicely in a grid with a legend. *)
+GraphicsGrid[Partition[
+	Prepend[%, LineLegend[ColorData[97, "ColorList"][[1;;3]], {"Prey", "Heterotroph", "Phototroph"}, LegendLabel -> "Population", LabelStyle -> 12]], 
+	UpTo[4]]]
+
+
+(* ::Text:: *)
+(*All of these plots show cyclical population dynamics.*)
+
+
+(* ::Subsubsection:: *)
+(*Find the peak and trough of population cycles*)
+
+
+(* ::Subsubsection::Closed:: *)
+(*Just to check, simulate population dynamics for the retention values with positive stable equilibria*)
+
+
+(* ::Text:: *)
+(*Get the retention values with positive, stable equilibria.*)
+
+
+retentionPositiveEquil = Pick[retentionValues, Map[AllTrue[#, #1&] == False&, nonPositivePopulations]]
+
+
+(* ::Text:: *)
+(*Simulate population dynamics.*)
+
+
+simulatedPopDynamicsPositiveEquil = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, attackTradeOff -> False, conversionTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6],
+{retention, retentionPositiveEquil}];
+
+
+(* ::Text:: *)
+(*Plot population dynamics.*)
+(*For retention < 0.25, everything reaches a stable equilibrium within 3000 time steps.*)
+(*For retention = 0.25, we see damped oscillations, but they look like they're converging on the equilibrium value we found above (prey = 3.6, heterotroph = 3.3, phototroph = 1).*)
+
+
+Table[Plot[Evaluate[{w[t], h[t], p[t]}/.simulatedPopDynamicsPositiveEquil[[i, 1]]], {t, 3000, 4000},
+PlotLabel -> "Retention = " <> ToString[N[retentionPositiveEquil[[i]]]], 
+AxesLabel -> {"Time (days)", "Population size"}, ImageSize -> Medium],
+{i, Length[simulatedPopDynamicsPositiveEquil]}];
+
+(* This is completely unnecessary. It just arranges things nicely in a grid with a legend. *)
+GraphicsGrid[Partition[
+	Prepend[%, LineLegend[ColorData[97, "ColorList"][[1;;3]], {"Prey", "Heterotroph", "Phototroph"}, LegendLabel -> "Population", LabelStyle -> 12]], 
+	UpTo[4]]]
 
 
 (* ::Subsubsection:: *)
@@ -320,3 +444,6 @@ Chop[stableEquils]
 heterotrophPlot = ListLinePlot[Table[{light, stateVar /. stableEquils[[light + 1, 1]]}, {stateVar, {w, h, p}}, {light, 0, 60}], PlotRange -> All,
 FrameLabel -> {"Light (\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s)", "Equilibrium density (cells/mL)"}, Frame -> {{True, False}, {True, False}}, PlotRangePadding -> {{0, 0}, {0.05, 0.2}},
 PlotLabel -> "(A) Strict heterotroph, no trade-off", PlotLegends -> {"Prey", "Heteroph", "Phototroph"}]
+
+
+(*Map[Select[AllTrue[NonNegative]], {w, h, p} /. Chop[stableEquils] (* Chops replaces numbers very close to 0 with 0 *)] //MatrixForm*)
