@@ -397,12 +397,8 @@ GraphicsGrid[Partition[
 (*All of these plots show cyclical population dynamics.*)
 
 
-(* ::Subsubsection:: *)
-(*Find the peak and trough of population cycles*)
-
-
 (* ::Subsubsection::Closed:: *)
-(*Just to check, simulate population dynamics for the retention values with positive stable equilibria*)
+(*(Just to check, simulate population dynamics for the retention values with positive stable equilibria)*)
 
 
 (* ::Text:: *)
@@ -437,13 +433,122 @@ GraphicsGrid[Partition[
 	UpTo[4]]]
 
 
+(* ::Subsubsection::Closed:: *)
+(*Find the peak and trough of population cycles*)
+
+
+(* ::Text:: *)
+(*Find the minimum and maximum prey population sizes.*)
+
+
+preyCycle = Table[
+{NMinimize[{w[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
+NMaximize[{w[t]/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
+{i, Length[simulatedPopDynamics]}]
+
+
+(* ::Text:: *)
+(*Find the minimum and maximum total mixotroph population sizes.*)
+
+
+mixotrophCycle = Table[
+{NMinimize[{(h[t] + p[t])/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
+NMaximize[{(h[t] + p[t])/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
+{i, Length[simulatedPopDynamics]}]
+
+
+(* ::Text:: *)
+(*Note that the phototroph and heterotroph cycles are slightly offset (one peaks slightly after the other), so the maximum is slightly lower than maximum heterotroph + maximum photroph.*)
+(* Likewise, the minimum total mixotroph population is slightly higher than minimum heterotroph + minimum phototroph.*)
+
+
+(* Calculate max & min pop. size for heterotroph and phototroph separately *)
+Table[
+population -> {NMinimize[{population[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
+NMaximize[{population[t]/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
+{i, Length[simulatedPopDynamics]}, {population, {h, p}}];
+
+(* Compare to the max. and min. total mixotroph population *)
+mixotrophCycle - ((h + p) /. %) //
+	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Mixotroph min. - (Heterotroph min. + Photroph min.)", "Mixotroph max. - (Heterotroph max. + Photroph max.)"}}]&
+
+
+(* ::Subsubsection:: *)
+(*Plot*)
+
+
+(* ::Text:: *)
+(*Get the positive, stable equilibria.*)
+
+
+preyPositiveEquil = Pick[w /. stableEquils, Map[Not, nonPositivePopulations, {2}]];
+mixotrophPositiveEquil = Pick[(h + p) /. stableEquils, Map[Not, nonPositivePopulations, {2}]];
+
+(* Remove the entries that are empty because there is no positive, stable equilibrium at that retention value*)
+preyPositiveEquil = Select[preyPositiveEquil, Length[#] > 0&];
+mixotrophPositiveEquil = Select[mixotrophPositiveEquil, Length[#] > 0&];
+
+
+(* ::Text:: *)
+(*Pair the equilibria with their retention probabilities.*)
+
+
+preyPositiveEquilVsRetention = MapThread[
+	(* If there are multiple stable equilibria for a particular retention value, Map[{retention, #}&, equil] pairs each of the equilibria with the retention value. *)
+	(* The Function[{retention, equil}] just allows us to refer to the entries of rententionPositiveEquil as "retention" and the entries of preyPositiveEquil as "equil" *)
+	Function[{retention, equil}, Map[{retention, #}&, equil]],
+	{retentionPositiveEquil, preyPositiveEquil}];
+	
+(* Make everything have nice dimensions *)
+preyPositiveEquilVsRetention = Flatten[preyPositiveEquilVsRetention, 1];
+
+
+mixotrophPositiveEquilVsRetention = MapThread[Function[{retention, equil}, Map[{retention, #}&, equil]], {retentionPositiveEquil, mixotrophPositiveEquil}];
+
+(* Make everything have nice dimensions *)
+mixotrophPositiveEquilVsRetention = Flatten[mixotrophPositiveEquilVsRetention, 1];
+
+
+(* ::Text:: *)
+(*Pair the cycle peak and troughs with their retention probabilities*)
+
+
+preyCycleMinimaVsRetention = MapThread[{#1, #2}&, {retentionNoPositiveEquil, preyCycle[[All, 1]]}];
+
+preyCycleMaximaVsRetention = MapThread[{#1, #2}&, {retentionNoPositiveEquil, preyCycle[[All, 2]]}];
+
+
+mixotrophCycleMinimaVsRetention = MapThread[{#1, #2}&, {retentionNoPositiveEquil, mixotrophCycle[[All, 1]]}];
+
+mixotrophCycleMaximaVsRetention = MapThread[{#1, #2}&, {retentionNoPositiveEquil, mixotrophCycle[[All, 2]]}];
+
+
+(* ::Text:: *)
+(*Join the stable equilibrium points to both cycle lists (they are both maxima and minima).*)
+(*This is just for making the points connect nicely on the plot.*)
+
+
+preyPlotPointsMinima = Join[preyPositiveEquilVsRetention, preyCycleMinimaVsRetention];
+preyPlotPointsMaxima = Join[preyPositiveEquilVsRetention, preyCycleMaximaVsRetention];
+
+mixotrophPlotPointsMinima = Join[mixotrophPositiveEquilVsRetention, mixotrophCycleMinimaVsRetention];
+mixotrophPlotPointsMaxima = Join[mixotrophPositiveEquilVsRetention, mixotrophCycleMaximaVsRetention];
+
+
+(* ::Text:: *)
+(*Time to put these points into a plot!*)
+
+
+ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima,
+mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, PlotStyle -> {Red, Red, Blue, Blue},
+PlotLabel -> "Stable equilibrium becomes limit cycles\nas retention probability increases",
+Frame -> {True, True, None, None},
+FrameLabel -> {"Retention probability (\[Phi])", "Population size (cells/mL)"},
+PlotLegends -> LineLegend[{Red, Blue}, {"Prey", "Mixotroph (heterotroph + phototroph)"}]]
+
+
+Export["temporary_bifurcation_diagram.pdf", %]
+
+
 (* ::Subsubsection:: *)
 (*Final plot*)
-
-
-heterotrophPlot = ListLinePlot[Table[{light, stateVar /. stableEquils[[light + 1, 1]]}, {stateVar, {w, h, p}}, {light, 0, 60}], PlotRange -> All,
-FrameLabel -> {"Light (\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s)", "Equilibrium density (cells/mL)"}, Frame -> {{True, False}, {True, False}}, PlotRangePadding -> {{0, 0}, {0.05, 0.2}},
-PlotLabel -> "(A) Strict heterotroph, no trade-off", PlotLegends -> {"Prey", "Heteroph", "Phototroph"}]
-
-
-(*Map[Select[AllTrue[NonNegative]], {w, h, p} /. Chop[stableEquils] (* Chops replaces numbers very close to 0 with 0 *)] //MatrixForm*)
