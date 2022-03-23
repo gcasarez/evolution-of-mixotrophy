@@ -1,7 +1,7 @@
 #!/usr/bin/env wolframscript
 (* ::Package:: *)
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Parameters*)
 
 
@@ -29,6 +29,26 @@ c = 0.1;
 (*gammaC = 1;*) (* 1 for no conversion efficiency trade-off, 0.7 for conversion efficiency trade-off *)
 sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 (*iIn = 25; *)(* Incident light *)
+
+
+(* ::Subsubsection::Closed:: *)
+(*Plot settings*)
+
+
+(* ::Text:: *)
+(*Colors for plotting prey and mixotrophs*)
+
+
+colorW = RGBColor["#77aa77"]; (* prey *)
+colorM = RGBColor["#cd1aff"]; (* mixotroph *)
+
+
+(* ::Text:: *)
+(*Font for plots*)
+
+
+Map[SetOptions[#, LabelStyle -> {FontSize -> 12, FontFamily -> "Arial", FontColor -> Black}]&,
+	{Plot, ListPlot, ListLinePlot, LineLegend}];
 
 
 (* ::Section::Closed:: *)
@@ -83,7 +103,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Functions to Find Equilibria*)
 
 
@@ -200,7 +220,7 @@ Return[{ecoDynamics, extinction}]]
 retentionValues = Table[retention, {retention, 0, 1, 1/20}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Step 1: Find places where the derivative = 0 (these could be stable or unstable equilibria). *)
 
 
@@ -235,7 +255,7 @@ candidateStableEquils = Map[Select[Length[#] > 0&], candidateStableEquils];
 duplicatesRemoved = Table[DeleteDuplicates[candidateStableEquils[[i]], EuclideanDistance[({w, h, p} /. #1), ({w, h, p} /. #2)] < 1/1000&], {i, Length[candidateStableEquils]}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Step 2: Find the stability of the equilibria*)
 
 
@@ -269,7 +289,7 @@ MapThread[{#1, #2}&, {retentionValues,  Map[Dimensions, stableEquils][[All, 1]]}
 	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Retention", "# Equilibria"}}]&
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Step 3: Make some temporary plots*)
 
 
@@ -308,7 +328,7 @@ PointLegend[{Blue, Directive[Red, Opacity[0.5]]}, {"Stable", "Unstable"}, Legend
 (*What we can see from the above plot is that above a retention probability of about 0.25, the stable equilibria seem to occur at negative population sizes. *)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Step 4: Find nonnegative stable equilibria*)
 
 
@@ -397,7 +417,7 @@ GraphicsGrid[Partition[
 (*All of these plots show cyclical population dynamics.*)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*(Just to check, simulate population dynamics for the retention values with positive stable equilibria)*)
 
 
@@ -433,7 +453,7 @@ GraphicsGrid[Partition[
 	UpTo[4]]]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Find the peak and trough of population cycles*)
 
 
@@ -443,7 +463,7 @@ GraphicsGrid[Partition[
 
 preyCycle = Table[
 {NMinimize[{w[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
-NMaximize[{w[t]/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
+NMaximize[{w[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
 {i, Length[simulatedPopDynamics]}]
 
 
@@ -453,7 +473,7 @@ NMaximize[{w[t]/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, AccuracyGo
 
 mixotrophCycle = Table[
 {NMinimize[{(h[t] + p[t])/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
-NMaximize[{(h[t] + p[t])/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
+NMaximize[{(h[t] + p[t])/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
 {i, Length[simulatedPopDynamics]}]
 
 
@@ -465,7 +485,7 @@ NMaximize[{(h[t] + p[t])/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, A
 (* Calculate max & min pop. size for heterotroph and phototroph separately *)
 Table[
 population -> {NMinimize[{population[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
-NMaximize[{population[t]/.simulatedPopDynamics[[1, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
+NMaximize[{population[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
 {i, Length[simulatedPopDynamics]}, {population, {h, p}}];
 
 (* Compare to the max. and min. total mixotroph population *)
@@ -473,7 +493,7 @@ mixotrophCycle - ((h + p) /. %) //
 	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Mixotroph min. - (Heterotroph min. + Photroph min.)", "Mixotroph max. - (Heterotroph max. + Photroph max.)"}}]&
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Plot*)
 
 
@@ -539,16 +559,106 @@ mixotrophPlotPointsMaxima = Join[mixotrophPositiveEquilVsRetention, mixotrophCyc
 (*Time to put these points into a plot!*)
 
 
-ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima,
-mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, PlotStyle -> {Red, Red, Blue, Blue},
-PlotLabel -> "Stable equilibrium becomes limit cycles\nas retention probability increases",
+tempBifurcationPlot = ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima,
+mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, PlotStyle -> {colorW, colorW, colorM, colorM},
+PlotLabel -> "(A) Equilibrium population size vs. retention probability",
 Frame -> {True, True, None, None},
 FrameLabel -> {"Retention probability (\[Phi])", "Population size (cells/mL)"},
-PlotLegends -> LineLegend[{Red, Blue}, {"Prey", "Mixotroph (heterotroph + phototroph)"}]]
+PlotLegends -> LineLegend[{colorW, colorM}, {"Prey", "Mixotroph"}],
+AspectRatio -> 1/3, ImageSize -> 600, PlotRange -> {0, 26}]
 
 
-Export["temporary_bifurcation_diagram.pdf", %]
+(* ::Section:: *)
+(*Make final plots*)
 
 
 (* ::Subsubsection:: *)
-(*Final plot*)
+(*Example population dynamics subpanels*)
+
+
+(* ::Text:: *)
+(*We'll make two example plots of the population dynamics: one at a retention probability that induces cycling, and one at a retention probability that does not.*)
+
+
+(* ::Text:: *)
+(*We'll use a retention probability of 0.1 for the plot without cycling and a retention probability of 0.6 for the plot with cycling.*)
+
+
+retentionValues[[{3, 13}]]
+
+
+(* ::Text:: *)
+(*We'll mark these retention values on a plot so we can show them on the final figure.*)
+(*For the y values of the points, we'll use the average of the population sizes.*)
+
+
+pointsOfInterest = ListPlot[
+Table[{{retentionValues[[i]], (* x value, retention probability *)
+	Mean[{preyPlotPointsMinima[[i, 2]], preyPlotPointsMaxima[[i, 2]], mixotrophPlotPointsMinima[[i, 2]], mixotrophPlotPointsMaxima[[i, 2]]}]}}, (* y value, average of prey & mixotroph population sizes *)
+	{i, {3, 13}}],
+PlotMarkers -> {{"B", 15}, {"C", 15}}, PlotStyle -> Black];
+
+
+(* ::Text:: *)
+(*Add the marks to the bifurcation plot*)
+
+
+bifurcationPlot = Show[tempBifurcationPlot, pointsOfInterest]
+
+
+(* ::Text:: *)
+(*Simulate the population dynamics for our two example cases.*)
+
+
+examplePopDynamics = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, attackTradeOff -> False, conversionTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6],
+{retention, retentionValues[[{3, 13}]]}];
+
+
+(* ::Text:: *)
+(*Plot the population dynamics*)
+
+
+examplePopPlots = Table[Show[
+	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
+		PlotRange -> {{0, 4000}, {0, 26}},
+		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size"}, 
+		PlotStyle -> {colorW, colorM}, 
+		AspectRatio -> 1/4, ImageSize -> 800,
+		
+		(* The plot label. It's in a pane to get the title aligned properly :( *)
+		PlotLabel -> Pane[{"(B) ", "(C) "}[[i]] <> "Population dynamics, retention = " <> ToString[N[retentionValues[[{3, 13}]][[i]]]], 
+			(* Pane options. The image size here is what is needed to align the title with the bifurcation plot's title. Smaller = more to the right. *)
+			Alignment -> Left, ImageSize -> 531]],
+		
+	(* Add a gray rectangle to mark the part that is averaged for further analysis *)
+	Graphics[{Gray, Opacity[0.3], Rectangle[{3000, 0}, {4000, 25}]}]],
+{i, 2}]
+
+
+(* ::Subsubsection:: *)
+(*Assemble the plots into a figure*)
+
+
+(* ::Text:: *)
+(*Make a slightly nicer legend to replace the one we were using for the bifurcation plot*)
+
+
+finalPlotLegend = Framed[ (* put a frame around the legend *)
+	LineLegend[{colorW, colorM}, {"Prey", "Mixotroph"}, LegendLabel -> "Population",
+		LabelStyle -> {14, "Arial", Black}], 
+(* frame options *)
+RoundingRadius -> 10, FrameStyle -> {Thin, Black}];
+
+
+(* ::Text:: *)
+(*Put the plots and new legend together in a grid*)
+
+
+Grid[{{bifurcationPlot[[1]] (* bifurcationPlot[[1]] selects the plot without its legend *), finalPlotLegend},
+{examplePopPlots[[1]] (* this just normally selects the first of two plots in examplePopPlots *), SpanFromLeft},
+{examplePopPlots[[2]], SpanFromLeft}},
+Spacings -> {0, 3}]
+Export["bifurcation_diagram.pdf", %]
+
+
+
