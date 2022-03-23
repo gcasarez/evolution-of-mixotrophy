@@ -1,7 +1,7 @@
 #!/usr/bin/env wolframscript
 (* ::Package:: *)
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Parameters*)
 
 
@@ -103,7 +103,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Functions to Find Equilibria*)
 
 
@@ -205,7 +205,7 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Find Stable Equilibria!*)
 
 
@@ -362,7 +362,7 @@ Pick[h/.stableEquils, nonNegativePopulations],
 Pick[p/.stableEquils, nonNegativePopulations]}] //TableForm[#, TableHeadings -> {None, {"Retention", "Prey", "Heterotroph", "Phototroph"}}]&
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Step 5: Investigate points where no positive stable equilibria were found*)
 
 
@@ -417,7 +417,7 @@ GraphicsGrid[Partition[
 (*All of these plots show cyclical population dynamics.*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*(Just to check, simulate population dynamics for the retention values with positive stable equilibria)*)
 
 
@@ -453,7 +453,7 @@ GraphicsGrid[Partition[
 	UpTo[4]]]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Find the peak and trough of population cycles*)
 
 
@@ -627,7 +627,7 @@ examplePopPlots = Table[Show[
 		
 		(* The plot label. It's in a pane to get the title aligned properly :( *)
 		PlotLabel -> Pane[{"(B) ", "(C) "}[[i]] <> "Population dynamics, retention = " <> ToString[N[retentionValues[[{3, 13}]][[i]]]], 
-			(* Pane options. The image size here is what is needed to align the title with the bifurcation plot's title. Smaller = more to the right. *)
+			(* Pane options. The image size here is what is needed to align the title with the bifurcation plot's title. Because the text is left-aligned, a smaller ImageSize moves the text more to the right. *)
 			Alignment -> Left, ImageSize -> 531]],
 		
 	(* Add a gray rectangle to mark the part that is averaged for further analysis *)
