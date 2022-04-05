@@ -83,7 +83,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Resident and mutant dynamics*)
 
 
@@ -210,7 +210,7 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to simulate evolution*)
 
 
@@ -483,6 +483,13 @@ Export["evolutionSimsCE_10e-6_light50_300.wdx", evolutionSimsCEhighLight];
 
 
 evolutionSimsCEhighLight = Import["evolutionSimsCE_10e-6_light50_300.wdx"];
+
+
+GraphicsGrid[Table[
+{ListLinePlot[evolutionSimsCEhighLight[[i, All, 1]], AxesLabel -> {"Time (mutations)", "Retention"}, PlotLabel -> "Light = " <> ToString[higherLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium],
+ListLinePlot[evolutionSimsCEhighLight[[i, All, 2]], AxesLabel -> {"Time (mutations)", "Replication"}, PlotLabel -> "Light = " <> ToString[higherLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium]},
+{i, Length[higherLightLevels]}]]
+Export["evolutionSimsCE_10e-6_light50_300.pdf", %]
 
 
 (* ::Subsubsection::Closed:: *)
