@@ -375,7 +375,7 @@ myColors = Append[(ColorData["CandyColors"] /@ Subdivide[3])[[{(*1,*) 2, 4}]], W
 
 
 simLightLevels = {22, 23, 24, 25, 26, 27, 28, 29, 30};
-higherLightLevels = {50, 100, 150, 200, 250, 300};
+higherLightLevels = {55, 60, 65, 70, 75, 80, 85, 90};
 
 
 (* ::Text:: *)
@@ -479,17 +479,17 @@ evolutionSimsCE = Import["evolutionSimsCE_10e-6_light22-30.wdx"];
 evolutionSimsCEhighLight = Map[ParallelTable[simulateEvolution[#, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True], 10]&, higherLightLevels];
 
 
-Export["evolutionSimsCE_10e-6_light50_300.wdx", evolutionSimsCEhighLight];
+Export["evolutionSimsCE_10e-6_light55_95.wdx", evolutionSimsCEhighLight];
 
 
-evolutionSimsCEhighLight = Import["evolutionSimsCE_10e-6_light50_300.wdx"];
+evolutionSimsCEhighLight = Import["evolutionSimsCE_10e-6_light55_95.wdx"];
 
 
 GraphicsGrid[Table[
 {ListLinePlot[evolutionSimsCEhighLight[[i, All, 1]], AxesLabel -> {"Time (mutations)", "Retention"}, PlotLabel -> "Light = " <> ToString[higherLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium],
 ListLinePlot[evolutionSimsCEhighLight[[i, All, 2]], AxesLabel -> {"Time (mutations)", "Replication"}, PlotLabel -> "Light = " <> ToString[higherLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium]},
 {i, Length[higherLightLevels]}]]
-Export["evolutionSimsCE_10e-6_light50_300.pdf", %]
+Export["evolutionSimsCE_10e-6_light55_95.pdf", %]
 
 
 (* ::Subsubsection::Closed:: *)
