@@ -375,6 +375,7 @@ myColors = Append[(ColorData["CandyColors"] /@ Subdivide[3])[[{(*1,*) 2, 4}]], W
 
 
 simLightLevels = {22, 23, 24, 25, 26, 27, 28, 29, 30};
+higherLightLevels = {50, 100, 150, 200, 250, 300};
 
 
 (* ::Text:: *)
@@ -389,7 +390,7 @@ lowerLightLevels = {20, 21};
 (*Finally, we'll put all the light levels together for plotting.*)
 
 
-lightLevels = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
+lightLevels = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 50, 100, 150, 200, 250, 300};
 
 
 (* ::Text:: *)
@@ -469,6 +470,19 @@ Export["evolutionSimsCE_10e-6_light22-30.wdx", evolutionSimsCE];
 
 
 evolutionSimsCE = Import["evolutionSimsCE_10e-6_light22-30.wdx"];
+
+
+(* ::Subsubsection:: *)
+(*Simulation evolution (light > 30 micromol photons/m^2/s)*)
+
+
+evolutionSimsCEhighLight = Map[ParallelTable[simulateEvolution[#, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True], 10]&, higherLightLevels];
+
+
+Export["evolutionSimsCE_10e-6_light50_300.wdx", evolutionSimsCEhighLight];
+
+
+evolutionSimsCEhighLight = Import["evolutionSimsCE_10e-6_light50_300.wdx"];
 
 
 (* ::Subsubsection::Closed:: *)
