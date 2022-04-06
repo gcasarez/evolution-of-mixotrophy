@@ -83,7 +83,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Resident and mutant dynamics*)
 
 
@@ -492,6 +492,19 @@ ListLinePlot[evolutionSimsCEhighLight[[i, All, 2]], AxesLabel -> {"Time (mutatio
 Export["evolutionSimsCE_10e-6_light55_95.pdf", %]
 
 
+(* ::Text:: *)
+(*Simulate evolution with increased precision. (We see that extinction only occurs at higher light levels.)*)
+
+
+evolutionSimsCEhighPrec = Map[ParallelTable[simulateEvolution[#, PrecisionGoal -> 10, AccuracyGoal -> 10, conversionTradeOff -> True], 10]&, {65, 70, 75, 80, 85, 90, 95, 100}];
+
+
+Export["evoltionSimsCE_10e-10_light65-100.wdx", evolutionSimsCEhighPrec]
+
+
+evolutionSimsCEhighPrec[[All, All, All, 1001]] //MatrixForm
+
+
 (* ::Subsubsection::Closed:: *)
 (*Plot the trait values vs. time (just to see what's going on)*)
 
@@ -633,6 +646,26 @@ Export["evolutionSimsCEAR_10e-6_light22-30.wdx", evolutionSimsCEAR];
 
 
 evolutionSimsCEAR = Import["evolutionSimsCEAR_10e-6_light22-30.wdx"];
+
+
+(* ::Subsubsection:: *)
+(*Simulation evolution (light > 30 micromol photons/m^2/s)*)
+
+
+evolutionSimsCEARhighLight = Map[ParallelTable[simulateEvolution[#, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True], 10]&, higherLightLevels];
+
+
+Export["evolutionSimsCEAR_10e-6_light55_95.wdx", evolutionSimsCEARhighLight];
+
+
+evolutionSimsCEARhighLight = Import["evolutionSimsCEAR_10e-6_light55_95.wdx"];
+
+
+GraphicsGrid[Table[
+{ListLinePlot[evolutionSimsCEARhighLight[[i, All, 1]], AxesLabel -> {"Time (mutations)", "Retention"}, PlotLabel -> "Light = " <> ToString[higherLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium],
+ListLinePlot[evolutionSimsCEARhighLight[[i, All, 2]], AxesLabel -> {"Time (mutations)", "Replication"}, PlotLabel -> "Light = " <> ToString[higherLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium]},
+{i, Length[higherLightLevels]}]]
+Export["evolutionSimsCEAR_10e-6_light55_95.pdf", %]
 
 
 (* ::Subsubsection:: *)
