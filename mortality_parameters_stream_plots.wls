@@ -327,7 +327,7 @@ dMutantGrowthdReplication = Mean[derivatives] ] ];
 Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Phototroph mortality rate is higher*)
 
 
@@ -518,7 +518,7 @@ Export["stream_plots_higher_phototroph_mortality.pdf", %]
 (*Heterotroph mortality rate is higher*)
 
 
-lH = lH2 = 0.35;
+lH = lH2 = 0.5;
 lP = lP2 = 0.25;
 
 
@@ -696,9 +696,6 @@ Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset
 Alignment -> Center]
 
 Export["stream_plots_higher_heterotroph_mortality.pdf", %]
-
-
-
 
 
 
