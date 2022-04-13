@@ -695,7 +695,7 @@ Spacer[50]],
 Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset[Style["Increasing light", 20], Background -> White]}, ImageSize -> {1200, 50}]},
 Alignment -> Center]
 
-Export["stream_plots_higher_phototroph_mortality.pdf", %]
+Export["stream_plots_higher_heterotroph_mortality.pdf", %]
 
 
 
