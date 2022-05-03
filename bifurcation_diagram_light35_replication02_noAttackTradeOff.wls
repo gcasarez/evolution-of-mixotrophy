@@ -31,7 +31,7 @@ sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 (*iIn = 25; *)(* Incident light *)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Plot settings*)
 
 
@@ -556,54 +556,74 @@ mixotrophPlotPointsMaxima = Join[mixotrophPositiveEquilVsRetention, mixotrophCyc
 
 
 (* ::Text:: *)
-(*Time to put these points into a plot!*)
+(*Time to put these points into plots!*)
 
 
-tempBifurcationPlot = ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima,
-mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, PlotStyle -> {colorW, colorW, colorM, colorM},
-PlotLabel -> "(A) Equilibrium population size vs. retention probability",
-Frame -> {True, True, None, None},
-FrameLabel -> {"Retention probability (\[Phi])", "Population size (cells/mL)"},
-PlotLegends -> LineLegend[{colorW, colorM}, {"Prey", "Mixotroph"}],
-AspectRatio -> 1/3, ImageSize -> 600, PlotRange -> {0, 26}]
+preyTempBifurcationPlot = 
+Show[
+ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima}, 
+	PlotStyle -> colorW,
+	Frame -> {True, True, None, None},
+	FrameLabel -> {"Retention probability (\[Phi])", "Population size (cells/mL)"},
+	AspectRatio -> 1/2, ImageSize -> 350, PlotRange -> {0, 26}],
+
+(* This is a way to get the shading between the cycle maxima and minima lines. We should be able to do this within ListLinePlot, but it's glitched. *)
+Graphics[{Directive[colorW, Opacity[0.1]], Polygon[Flatten[{preyPlotPointsMinima, Reverse[preyPlotPointsMaxima]}, 1]]}]]
 
 
-(* ::Section:: *)
+mixotrophTempBifurcationPlot = 
+Show[
+ListLinePlot[{mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, 
+	PlotStyle -> colorM,
+	Frame -> {True, True, None, None},
+	FrameLabel -> {"Retention probability (\[Phi])", "Population size (cells/mL)"},
+	AspectRatio -> 1/2, ImageSize -> 350, PlotRange -> {0, 26}],
+
+(* Shade where cycling occurs *)
+Graphics[{Directive[colorM, Opacity[0.1]], Polygon[Flatten[{mixotrophPlotPointsMinima, Reverse[mixotrophPlotPointsMaxima]}, 1]]}]]
+
+
+(* ::Section::Closed:: *)
 (*Make final plots*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Example population dynamics subpanels*)
 
 
 (* ::Text:: *)
-(*We'll make two example plots of the population dynamics: one at a retention probability that induces cycling, and one at a retention probability that does not.*)
+(*We'll make example plots of the population dynamics at two retention probabilities: one at a retention probability that induces cycling, and one at a retention probability that does not.*)
 
 
 (* ::Text:: *)
-(*We'll use a retention probability of 0.1 for the plot without cycling and a retention probability of 0.6 for the plot with cycling.*)
+(*We'll use a retention probability of 0.1 for the example without cycling and a retention probability of 0.6 for the example with cycling.*)
 
 
 retentionValues[[{3, 13}]]
 
 
 (* ::Text:: *)
-(*We'll mark these retention values on a plot so we can show them on the final figure.*)
-(*For the y values of the points, we'll use the average of the population sizes.*)
+(*We'll mark these retention values on the bifurcation diagram so we can show them on the final figure.*)
 
 
-pointsOfInterest = ListPlot[
-Table[{{retentionValues[[i]], (* x value, retention probability *)
-	Mean[{preyPlotPointsMinima[[i, 2]], preyPlotPointsMaxima[[i, 2]], mixotrophPlotPointsMinima[[i, 2]], mixotrophPlotPointsMaxima[[i, 2]]}]}}, (* y value, average of prey & mixotroph population sizes *)
-	{i, {3, 13}}],
-PlotMarkers -> {{"B", 15}, {"C", 15}}, PlotStyle -> Black];
+markedXaxisTicks = Join[
+	(* Normal tick marks *)
+	Charting`ScaledTicks["Linear"][0, 1, {4, 5}],
+	(* Gray band at retention probability = 0. 1 *)
+	{{0.1, , {1/2, 0}, Directive[Thickness[0.01], Gray, Opacity[0.5]]},
+	(* At mark "C" at retention probability = 0.1 *)
+	{0.1, Style["C", Bold], {0,0}},
+	(* Mark 0.6 with gray band and "D" *)
+	{0.6, , {1/2, 0}, Directive[Thickness[0.01], Gray, Opacity[0.5]]}, 
+	{0.6, Style["D", Bold], {0,0}}}];
 
 
 (* ::Text:: *)
-(*Add the marks to the bifurcation plot*)
+(*Add the marks to the bifurcation plots.*)
 
 
-bifurcationPlot = Show[tempBifurcationPlot, pointsOfInterest]
+preyBifurcationPlot = Show[preyTempBifurcationPlot, FrameTicks -> {markedXaxisTicks, Automatic}]
+mixotrophBifurcationPlot = Show[mixotrophTempBifurcationPlot, FrameTicks -> {markedXaxisTicks, Automatic}]
 
 
 (* ::Text:: *)
@@ -618,46 +638,41 @@ examplePopDynamics = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, att
 (*Plot the population dynamics*)
 
 
-examplePopPlots = Table[Show[
+examplePopPlots = Table[
 	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
-		PlotRange -> {{0, 4000}, {0, 26}},
+		PlotRange -> {{0, 200}, {0, 26}},
 		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size"}, 
 		PlotStyle -> {colorW, colorM}, 
-		AspectRatio -> 1/4, ImageSize -> 800,
-		
-		(* The plot label. It's in a pane to get the title aligned properly :( *)
-		PlotLabel -> Pane[{"(B) ", "(C) "}[[i]] <> "Population dynamics, retention = " <> ToString[N[retentionValues[[{3, 13}]][[i]]]], 
-			(* Pane options. The image size here is what is needed to align the title with the bifurcation plot's title. Because the text is left-aligned, a smaller ImageSize moves the text more to the right. *)
-			Alignment -> Left, ImageSize -> 531]],
-		
-	(* Add a gray rectangle to mark the part that is averaged for further analysis *)
-	Graphics[{Gray, Opacity[0.3], Rectangle[{3000, 0}, {4000, 25}]}]],
+		AspectRatio -> 1/2, ImageSize -> 350],
 {i, 2}]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Assemble the plots into a figure*)
 
 
 (* ::Text:: *)
-(*Make a slightly nicer legend to replace the one we were using for the bifurcation plot*)
+(*Make a slightly nicer legend to replace the one we were using for the temporary bifurcation plot*)
 
 
 finalPlotLegend = Framed[ (* put a frame around the legend *)
-	LineLegend[{colorW, colorM}, {"Prey", "Mixotroph"}, LegendLabel -> "Population",
+	LineLegend[{colorW, colorM}, {"Prey", "Consumer"}, LegendLabel -> "Population",
 		LabelStyle -> {14, "Arial", Black}], 
 (* frame options *)
 RoundingRadius -> 10, FrameStyle -> {Thin, Black}];
 
 
 (* ::Text:: *)
-(*Put the plots and new legend together in a grid*)
+(*Put the plots and legend together in a grid*)
 
 
-Grid[{{bifurcationPlot[[1]] (* bifurcationPlot[[1]] selects the plot without its legend *), finalPlotLegend},
-{examplePopPlots[[1]] (* this just normally selects the first of two plots in examplePopPlots *), SpanFromLeft},
-{examplePopPlots[[2]], SpanFromLeft}},
-Spacings -> {0, 3}]
+Grid[{
+{Show[preyBifurcationPlot, PlotLabel -> Pane["(A)", {300, 20}]], 
+	(* Add the legend to plot (C), as it has the most empty space *)
+	Show[examplePopPlots[[1]], PlotLabel -> Pane["(C)", {300, 20}], Epilog -> Inset[finalPlotLegend, {160, 19}]]},
+{Show[mixotrophBifurcationPlot, PlotLabel -> Pane["(B)", {300, 20}]],
+	Show[examplePopPlots[[2]], PlotLabel -> Pane["(D)", {300, 20}]]}},
+Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
 
 
