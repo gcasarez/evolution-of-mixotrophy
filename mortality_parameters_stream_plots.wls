@@ -549,7 +549,109 @@ Select[derivsForPlotsCEhighlH, #[[1]] == {1, 0}&][[All, 2]]
 Export["higherHeterotrophMortalityCE.wdx", derivsForPlotsCEhighlH]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
+(*Default mortality rates (lH = lP)*)
+
+
+lH = lH2 = 0.25;
+lP = lP2 = 0.25;
+
+
+(* ::Subsection::Closed:: *)
+(*Attack & conversion trade-offs*)
+
+
+(* ::Text:: *)
+(*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
+
+
+ecoDynamicsCEARdefault = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6,
+	conversionTradeOff -> True, attackTradeOff -> True]],
+ {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+ecoDynamicsCEARdefault = Flatten[ecoDynamicsCEARdefault, {{1,2}, {3}}];
+
+
+(* ::Text:: *)
+(*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
+
+
+extinctionPointsCEARdefault = Select[ecoDynamicsCEARdefault, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+
+
+(* ::Text:: *)
+(*Also find the points where the mixotroph population does not go extinct*)
+
+
+noExtinctionPointsCEARdefault = Select[ecoDynamicsCEARdefault, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+
+
+(* ::Text:: *)
+(*Find the derivative of invasion fitness (with respect to retention and replication) at each (retention, replication) combination where the mixotroph does not go extinct*)
+
+
+derivsForPlotsCEARdefault = 
+ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]], #[[6]], #[[7]], PrecisionGoal -> 6, AccuracyGoal -> 6, MaxSteps -> 40000, 
+	conversionTradeOff -> True, attackTradeOff -> True],
+{#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsCEARdefault];
+
+
+(* ::Text:: *)
+(*Check the derivatives of invasion fitness at obligately kleptoplastidic mixotrophy. They point right and down.*)
+
+
+Select[derivsForPlotsCEARdefault, #[[1]] == {1, 0}&][[All, 2]]
+
+
+(* ::Subsection::Closed:: *)
+(*Conversion trade-off only*)
+
+
+(* ::Text:: *)
+(*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
+
+
+ecoDynamicsCEdefault = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
+	conversionTradeOff -> True, attackTradeOff -> False]],
+ {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+ecoDynamicsCEdefault = Flatten[ecoDynamicsCEdefault, {{1,2}, {3}}];
+
+
+(* ::Text:: *)
+(*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
+
+
+extinctionPointsCEdefault = Select[ecoDynamicsCEdefault, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+
+
+(* ::Text:: *)
+(*Also find the points where the mixotroph population does not go extinct*)
+
+
+noExtinctionPointsCEdefault = Select[ecoDynamicsCEdefault, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+
+
+(* ::Text:: *)
+(*Find the derivative of invasion fitness (with respect to retention and replication) at each (retention, replication) combination where the mixotroph does not go extinct*)
+
+
+derivsForPlotsCEdefault = 
+ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]], #[[6]], #[[7]], PrecisionGoal -> 6, AccuracyGoal -> 6, MaxSteps -> 40000, 
+	conversionTradeOff -> True, attackTradeOff -> False],
+{#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsCEdefault];
+
+
+(* ::Text:: *)
+(*Check the derivatives of invasion fitness at obligately kleptoplastidic mixotrophy. They point right and up*)
+
+
+Select[derivsForPlotsCEdefault, #[[1]] == {1, 0}&][[All, 2]]
+
+
+(* ::Section::Closed:: *)
 (*Plots*)
 
 
@@ -567,8 +669,8 @@ SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 14
 (*Color scheme (prey density) and legend*)
 
 
-maxPrey = Max[{noExtinctionPointsCEhighlP[[All, 5]], noExtinctionPointsCEARhighlP[[All, 5]], 
-	noExtinctionPointsCEhighlH[[All, 5]], noExtinctionPointsCEARhighlH[[All, 5]]}];
+maxPrey = Max[{noExtinctionPointsCEhighlP[[All, 5]], noExtinctionPointsCEdefault[[All, 5]], noExtinctionPointsCEhighlH[[All, 5]],
+noExtinctionPointsCEARhighlP[[All, 5]], noExtinctionPointsCEARdefault[[All, 5]], noExtinctionPointsCEARhighlH[[All, 5]]}];
 
 
 preyDensityColors[p_] := ColorData[{"BeachColors", "Reverse"}][Log[(p + 1)]/Log[maxPrey + 1]]
@@ -584,8 +686,14 @@ LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarker
 (*Set up plot labels*)
 
 
-plotLabels = {"(A) High phototroph mortality\nNo tradeoff", "(B) High phototroph mortality\nAttack tradeoff",
-"(C) High heterotroph mortality\nNo tradeoff", "(D) High heterotroph mortality\nAttack tradeoff"};
+plotLabels = (*{"(A) High phototroph mortality\nLow heterotroph mortality\nNo tradeoff", 
+"(B) Equal heterotroph and\nphototroph mortality\nNo tradeoff",
+"(C) Low phototroph mortality\nHigh heterotroph mortality\nNo tradeoff",
+"(D) High phototroph mortality\nLow heterotroph mortality\nAttack tradeoff", 
+"(E) Equal heterotroph and\nphototroph mortality\nAttack tradeoff",
+"(F) Low phototroph mortality\nHigh heterotroph mortality\nAttack tradeoff"};*)
+Table[Pane[Style[letter, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300],
+{letter, {"(A)", "(B)", "(C)", "(D)", "(E)", "(F)"}}];
 
 
 (* ::Text:: *)
@@ -594,14 +702,17 @@ plotLabels = {"(A) High phototroph mortality\nNo tradeoff", "(B) High phototroph
 
 extinctionGraphics = 
 Table[Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPoints[[All, 2;;3]]]], 
-	{extinctionPoints, {extinctionPointsCEhighlP, extinctionPointsCEARhighlP, extinctionPointsCEhighlH, extinctionPointsCEARhighlH}}];
+	{extinctionPoints, 
+	{extinctionPointsCEhighlP, extinctionPointsCEdefault, extinctionPointsCEhighlH, 
+	extinctionPointsCEARhighlP, extinctionPointsCEARdefault, extinctionPointsCEARhighlH}}];
 
 
 (* ::Text:: *)
 (*Collect derivatives in a list*)
 
 
-derivsForPlots = {derivsForPlotsCEhighlP, derivsForPlotsCEARhighlP, derivsForPlotsCEhighlH, derivsForPlotsCEARhighlH};
+derivsForPlots = {derivsForPlotsCEhighlP, derivsForPlotsCEdefault, derivsForPlotsCEhighlH,
+	derivsForPlotsCEARhighlP, derivsForPlotsCEARdefault, derivsForPlotsCEARhighlH};
 
 
 (* ::Text:: *)
@@ -626,19 +737,31 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlots[[i]
 
 
 Row[{Grid[
+
+	(* Row labels *)
+	Join[Map[Rotate[Style[#, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}], 90Degree]&, 
+		{{""}, {"No tradeoff"}, {"Attack tradeoff"}}, {2}],
+		
+	(* Column labels *)
+	Join[Map[Style[#, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}]&, 
+		{{"High phototroph mortality, low heterotroph mortality", "Equal phototroph and heterotroph mortality", "Low phototroph mortality, high heterotroph mortality"}},
+		{2}],
+	 
 	(* Some extremely fancy rasterization of the plots without rasterizing their labels (removes the labels, raterizes, and re-adds the labels *)
 	Map[
-		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
+		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None, ImagePadding -> 1](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
 		Append[(FrameLabel /. Options[#])[[All, 1]], Style[(PlotLabel /. Options[#]), 14, TextAlignment -> Center]], {Left, Bottom, Top},
 		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
-	{plots[[1;;2]], plots[[3;;4]]}, {2}], 
+	{plots[[1;;3]], plots[[4;;6]]}, {2}]
+		(* close out the two joinings of row and column labels *)], 2], 
 Spacings -> {2, 3}], 
 
 	(* Legend *)
 	Column[{
 		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
-		PointLegend[{Black}, {"Direction of selection"}, LegendMarkers -> Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], LegendMarkerSize -> 75],
-		PointLegend[{Black}, {"Consumer extinction"}, LegendMarkers -> , LegendMarkerSize -> {20, 20}]}, 
+		PointLegend[{Black, Black}, {"Direction of selection", "Consumer extinction"}, 
+			LegendMarkers -> {Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], Graphics[Rectangle[{0, 0}]]},
+			LegendMarkerSize -> {{75, 75}, {20, 20}}]},
 	Frame -> True, Alignment -> {Center, Center}]}, 
 Spacer[50]]
 
