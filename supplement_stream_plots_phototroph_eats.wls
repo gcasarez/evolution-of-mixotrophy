@@ -36,7 +36,7 @@ sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 (*iIn = 25; *)(* Incident light *)
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Equations*)
 
 
@@ -327,7 +327,7 @@ dMutantGrowthdReplication = Mean[derivatives] ] ];
 Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Phototroph eats!*)
 
 
@@ -350,12 +350,12 @@ ecoDynamicsCEAR = Flatten[ecoDynamicsCEAR, {{1}, {2,3}, {4}}];
 
 
 (* ::Text:: *)
-(*What light/trait combinations cause the mixotroph population to go extinct?*)
+(*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEAR = Map[Select[#[[4]] == True&], ecoDynamicsCEAR];
+extinctionPointsCEAR = Map[Select[(* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&], ecoDynamicsCEAR];
 (* Also find the points where the mixotroph population does not go extinct *)
-noExtinctionPointsCEAR = Map[Select[#[[4]] == False&], ecoDynamicsCEAR];
+noExtinctionPointsCEAR = Map[Select[(#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&], ecoDynamicsCEAR];
 
 
 derivsForPlotsCEAR = 
@@ -392,12 +392,12 @@ ecoDynamicsCE = Flatten[ecoDynamicsCE, {{1}, {2,3}, {4}}];
 
 
 (* ::Text:: *)
-(*What light/trait combinations cause the mixotroph population to go extinct?*)
+(*What light/trait combinations cause the mixotroph population to go extinct or drop below 10^-6?*)
 
 
-extinctionPointsCE = Map[Select[#[[4]] == True&], ecoDynamicsCE];
+extinctionPointsCE = Map[Select[(#[[4]] == True) || (#[[6]] + #[[7]] < 10^-6)&], ecoDynamicsCE];
 (* Also find the points where the mixotroph population does not go extinct *)
-noExtinctionPointsCE = Map[Select[#[[4]] == False&], ecoDynamicsCE];
+noExtinctionPointsCE = Map[Select[(#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&], ecoDynamicsCE];
 
 
 derivsForPlotsCE = 
@@ -443,7 +443,6 @@ maxPrey = Max[{Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCEAR][[All, All,
 preyDensityColors[p_] := ColorData[{"BeachColors", "Reverse"}][Log[(p + 1)]/Log[maxPrey + 1]]
 
 
-(*BarLegend[{preyDensityColors[#]&, {0, maxPrey}}]*)
 preyDensityLegend = BarLegend[{preyDensityColors[Exp[#] - 1]&, {Log[1], Log[1 + maxPrey]}}, 
 Ticks -> Table[{Log[i + 1], ToString[i]}, {i, {0, 1, 2.5, 5, 10, 15, 25, 40}}],
 LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}];
@@ -494,20 +493,19 @@ Row[{Grid[
 		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
 	{streamPlotsCE, streamPlotsCEAR}, {2}], 
 Spacings -> {2, 3}], 
+
 	(* Legend *)
 	Column[{
 		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
-		PointLegend[{Black}, {"Direction of selection"}, LegendMarkers -> Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], LegendMarkerSize -> 75],
-		SwatchLegend[{Black}, {"Mixotroph extinction"}, LegendMarkerSize -> {20, 20}]}, 
+		PointLegend[{Black, Black}, {"Direction of selection", "Consumer extinction"}, 
+			LegendMarkers -> {Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], Graphics[Rectangle[{0, 0}]]},
+			LegendMarkerSize -> {{75, 75}, {20, 20}}]},
 	Frame -> True, Alignment -> {Center, Center}]}, 
 Spacer[50]],
 Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset[Style["Increasing light", 20], Background -> White]}, ImageSize -> {1200, 50}]},
 Alignment -> Center]
 
 Export["stream_plots_phototroph_eats.pdf", %]
-
-
-
 
 
 
