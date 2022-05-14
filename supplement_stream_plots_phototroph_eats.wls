@@ -437,7 +437,8 @@ SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 14
 
 
 maxPrey = Max[{Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCEAR][[All, All, 5]]],
-	Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCE][[All, All, 5]]]}];
+	Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCE][[All, All, 5]]],
+	40 (* This is the maximum in the other figures, add it here to put everything on the same scale across figures*)}];
 
 
 preyDensityColors[p_] := ColorData[{"BeachColors", "Reverse"}][Log[(p + 1)]/Log[maxPrey + 1]]
@@ -506,6 +507,9 @@ Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset
 Alignment -> Center]
 
 Export["stream_plots_phototroph_eats.pdf", %]
+
+
+
 
 
 
