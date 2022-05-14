@@ -647,6 +647,19 @@ examplePopPlots = Table[
 {i, 2}]
 
 
+(* ::Text:: *)
+(*Another plot of the population dynamics, going all the way out to day 4000*)
+
+
+fullPopPlots = Table[
+	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
+		PlotRange -> {{0, 4000}, {0, 26}},
+		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/mL)"}, 
+		PlotStyle -> {colorW, colorM}, 
+		AspectRatio -> 1/2, ImageSize -> 600],
+{i, 2}]
+
+
 (* ::Subsubsection::Closed:: *)
 (*Assemble the plots into a figure*)
 
@@ -676,8 +689,16 @@ Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
 
 
+(* ::Subsubsection::Closed:: *)
+(*Assemble a supplementary figure*)
 
 
+Column[{
+Show[fullPopPlots[[1]], PlotLabel -> Pane["(A)", {600, 20}],
+	Epilog -> Inset[finalPlotLegend, {3200, 19}]], (* Add the legend to plot (A), as it has the most empty space *)
+Show[fullPopPlots[[2]], PlotLabel -> Pane["(B)", {600, 20}]]},
+Spacer[5]]
+Export["extended_population_dynamics_from_bifurcation_diagram.pdf", %]
 
 
 
