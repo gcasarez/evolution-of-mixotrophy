@@ -88,7 +88,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Resident and mutant dynamics*)
 
 
@@ -259,8 +259,8 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Subsection::Closed:: *)
-(*Function *)
+(* ::Subsection:: *)
+(*Function to find average ecological state (no mutant present)*)
 
 
 averageEcoState[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
