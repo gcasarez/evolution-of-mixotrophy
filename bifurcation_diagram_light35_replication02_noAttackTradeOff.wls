@@ -564,7 +564,7 @@ Show[
 ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima}, 
 	PlotStyle -> colorW,
 	Frame -> {True, True, None, None},
-	FrameLabel -> {"Retention probability (\[Phi])", "Population size (cells/mL)"},
+	FrameLabel -> {"Retention probability (\[Phi])", "Prey equilibrium (cells/mL)"},
 	AspectRatio -> 1/2, ImageSize -> 350, PlotRange -> {0, 26}],
 
 (* This is a way to get the shading between the cycle maxima and minima lines. We should be able to do this within ListLinePlot, but it's glitched. *)
@@ -576,7 +576,7 @@ Show[
 ListLinePlot[{mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, 
 	PlotStyle -> colorM,
 	Frame -> {True, True, None, None},
-	FrameLabel -> {"Retention probability (\[Phi])", "Population size (cells/mL)"},
+	FrameLabel -> {"Retention probability (\[Phi])", "Consumer equilibrium (cells/mL)"},
 	AspectRatio -> 1/2, ImageSize -> 350, PlotRange -> {0, 26}],
 
 (* Shade where cycling occurs *)
@@ -641,7 +641,7 @@ examplePopDynamics = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, att
 examplePopPlots = Table[
 	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
 		PlotRange -> {{0, 200}, {0, 26}},
-		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size"}, 
+		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/mL)"}, 
 		PlotStyle -> {colorW, colorM}, 
 		AspectRatio -> 1/2, ImageSize -> 350],
 {i, 2}]
@@ -674,6 +674,10 @@ Grid[{
 	Show[examplePopPlots[[2]], PlotLabel -> Pane["(D)", {300, 20}]]}},
 Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
+
+
+
+
 
 
 
