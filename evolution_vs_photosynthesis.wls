@@ -162,6 +162,32 @@ Return[{ecoDynamics, extinction}]]
 
 
 (* ::Subsection::Closed:: *)
+(*Function to find the average ecological state, with no mutants present*)
+
+
+averageEcoState[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
+Module[{ecoDynamics, extinction, averagePrey, averageHeterotroph, averagePhototroph},
+
+(* Get the ecological dynamics *)
+{ecoDynamics, extinction} = residentEcoDynamics[retention, replication, surfaceLight, initialPrey, initialHeterotroph, initialPhototroph, opts];
+
+
+(* If the mixotroph went extinct, the mixotroph population sizes are 0. Maybe want to calculate the average prey population size with no mixotrophs, starting from initialPrey? Don't do this now *)
+If[extinction,
+	averagePrey = "Unknown";
+	averageHeterotroph = averagePhototroph = 0,
+
+(* If the mixotroph did not go extinct, calculate the average ecological state. Average the value over the last 1000 simulated time steps *)
+
+{averagePrey, averageHeterotroph, averagePhototroph} = 
+Table[NIntegrate[stateVar/. ecoDynamics, {t, 3000, 4000}, Evaluate[FilterRules[{opts}, Options[NIntegrate]]]]/(4000 - 3000),
+	{stateVar, {w[t], h[t], p[t]}}]];
+	
+(* Return the average population sizes and whether mixotroph went extinct *)
+Return[{extinction, averagePrey, averageHeterotroph, averagePhototroph}]]
+
+
+(* ::Subsection::Closed:: *)
 (*Function to find the ecological dynamics when a resident and a mutant mixotroph are both present*)
 
 
@@ -463,4 +489,49 @@ ImageSize -> 450, LabelStyle -> {Black, 12, "Arial"}]
 Export["evolution_from_heteroptrophy_vs_pP_light25_ce.pdf", %]
 
 
+(* ::Section::Closed:: *)
+(*Check whether avg. population size fell below 10^-6*)
 
+
+(* ::Text:: *)
+(*Load evolutionary trajectories*)
+
+
+SetDirectory["/home/alexandra/Documents/Student_projects/grace-AdaptiveDynamics/Saved_analyses"]
+
+
+evolutionSimsCE = Import["evolutionSimsCE_pP_light25.wdx"];
+
+
+(* ::Subsection:: *)
+(*Simulate ecological dynamics*)
+
+
+light = 25;
+
+
+(* ::Text:: *)
+(*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
+
+
+ecoDynamicsCE = Table[Join[{gammaPlevels[[i]], evolutionSimsCE[[i, j, 1, k]], evolutionSimsCE[[i, j, 2, k]]}, 
+	averageEcoState[evolutionSimsCE[[i, j, 1, k]], evolutionSimsCE[[i, j, 2, k]], light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
+	conversionTradeOff -> True, attackTradeOff -> False, photoEffiency -> gammaPlevels[[i]]]],
+ {i, Dimensions[evolutionSimsCE][[1]]}, {j, Dimensions[evolutionSimsCE][[2]]}, {k, Dimensions[evolutionSimsCE][[4]]}];
+
+
+Export["evolutionSimsCE_pP_light25_ecology.wdx", ecoDynamicsCE]
+
+
+Dimensions[ecoDynamicsCE]
+
+
+survival = Table[AllTrue[Map[(#[[1]] >= 10^-6) || (#[[2]] >= 10^-6)&, ecoDynamicsCE[[i, j, All, {6, 7}]]], #&],  
+	{i, 12}, {j, 10}];
+
+
+(* ::Text:: *)
+(*Looks like population drops below 10^-6 for pP = 1.5. We'll label those simulations as ending in extinction.*)
+
+
+TableForm[survival, TableHeadings -> {Map["Pp =" <> ToString[#]&, pPlevels], Map["Rep " <> ToString[#]&, Range[1, 10]]}]
