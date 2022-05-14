@@ -1,7 +1,7 @@
 #!/usr/bin/env wolframscript
 (* ::Package:: *)
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Parameters*)
 
 
@@ -36,7 +36,7 @@ sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 (*iIn = 25; *)(* Incident light *)
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Equations*)
 
 
@@ -334,7 +334,7 @@ Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 lightLevels = {25, 35, 50};
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Attack & conversion trade-offs*)
 
 
@@ -353,9 +353,9 @@ ecoDynamicsCEAR = Flatten[ecoDynamicsCEAR, {{1}, {2,3}, {4}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEAR = Map[Select[(* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&], ecoDynamicsCEAR];
+extinctionPointsCEAR = Map[Select[(* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&], ecoDynamicsCEAR];
 (* Also find the points where the mixotroph population does not go extinct *)
-noExtinctionPointsCEAR = Map[Select[(#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&], ecoDynamicsCEAR];
+noExtinctionPointsCEAR = Map[Select[(#[[4]] == False) && ((#[[6]] >= 10^-6) || (#[[7]] >= 10^-6))&], ecoDynamicsCEAR];
 
 
 derivsForPlotsCEAR = 
@@ -395,9 +395,9 @@ ecoDynamicsCE = Flatten[ecoDynamicsCE, {{1}, {2,3}, {4}}];
 (*What light/trait combinations cause the mixotroph population to go extinct or drop below 10^-6?*)
 
 
-extinctionPointsCE = Map[Select[(#[[4]] == True) || (#[[6]] + #[[7]] < 10^-6)&], ecoDynamicsCE];
+extinctionPointsCE = Map[Select[(#[[4]] == True) || ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&], ecoDynamicsCE];
 (* Also find the points where the mixotroph population does not go extinct *)
-noExtinctionPointsCE = Map[Select[(#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&], ecoDynamicsCE];
+noExtinctionPointsCE = Map[Select[(#[[4]] == False) && ((#[[6]] >= 10^-6) || (#[[7]] >= 10^-6))&], ecoDynamicsCE];
 
 
 derivsForPlotsCE = 
@@ -506,6 +506,9 @@ Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset
 Alignment -> Center]
 
 Export["stream_plots_phototroph_eats.pdf", %]
+
+
+
 
 
 

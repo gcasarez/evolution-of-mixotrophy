@@ -358,14 +358,14 @@ ecoDynamicsCEARhighlP = Flatten[ecoDynamicsCEARhighlP, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEARhighlP = Select[ecoDynamicsCEARhighlP, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+extinctionPointsCEARhighlP = Select[ecoDynamicsCEARhighlP, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&];
 
 
 (* ::Text:: *)
 (*Also find the points where the mixotroph population does not go extinct*)
 
 
-noExtinctionPointsCEARhighlP = Select[ecoDynamicsCEARhighlP, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+noExtinctionPointsCEARhighlP = Select[ecoDynamicsCEARhighlP, (#[[4]] == False) && ((#[[6]] >= 10^-6) || ( #[[7]] >= 10^-6))&];
 
 
 (* ::Text:: *)
@@ -408,14 +408,14 @@ ecoDynamicsCEhighlP = Flatten[ecoDynamicsCEhighlP, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEhighlP = Select[ecoDynamicsCEhighlP, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+extinctionPointsCEhighlP = Select[ecoDynamicsCEhighlP, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&];
 
 
 (* ::Text:: *)
 (*Also find the points where the mixotroph population does not go extinct*)
 
 
-noExtinctionPointsCEhighlP = Select[ecoDynamicsCEhighlP, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+noExtinctionPointsCEhighlP = Select[ecoDynamicsCEhighlP, (#[[4]] == False) && ((#[[6]] >= 10^-6) || ( #[[7]] >= 10^-6))&];
 
 
 (* ::Text:: *)
@@ -469,14 +469,14 @@ ecoDynamicsCEARhighlH = Flatten[ecoDynamicsCEARhighlH, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEARhighlH = Select[ecoDynamicsCEARhighlH, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+extinctionPointsCEARhighlH = Select[ecoDynamicsCEARhighlH, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&];
 
 
 (* ::Text:: *)
 (*Also find the points where the mixotroph population does not go extinct*)
 
 
-noExtinctionPointsCEARhighlH = Select[ecoDynamicsCEARhighlH, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+noExtinctionPointsCEARhighlH = Select[ecoDynamicsCEARhighlH, (#[[4]] == False) && ((#[[6]] >= 10^-6) || ( #[[7]] >= 10^-6))&];
 
 
 (* ::Text:: *)
@@ -499,7 +499,7 @@ Select[derivsForPlotsCEARhighlH, #[[1]] == {1, 0}&][[All, 2]]
 Export["higherHeterotrophMortalityCEAR.wdx", derivsForPlotsCEARhighlH]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Conversion trade-off only*)
 
 
@@ -519,14 +519,14 @@ ecoDynamicsCEhighlH = Flatten[ecoDynamicsCEhighlH, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEhighlH = Select[ecoDynamicsCEhighlH, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+extinctionPointsCEhighlH = Select[ecoDynamicsCEhighlH, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&];
 
 
 (* ::Text:: *)
 (*Also find the points where the mixotroph population does not go extinct*)
 
 
-noExtinctionPointsCEhighlH = Select[ecoDynamicsCEhighlH, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+noExtinctionPointsCEhighlH = Select[ecoDynamicsCEhighlH, (#[[4]] == False) && ((#[[6]] >= 10^-6) || ( #[[7]] >= 10^-6))&];
 
 
 (* ::Text:: *)
@@ -549,7 +549,7 @@ Select[derivsForPlotsCEhighlH, #[[1]] == {1, 0}&][[All, 2]]
 Export["higherHeterotrophMortalityCE.wdx", derivsForPlotsCEhighlH]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Default mortality rates (lH = lP)*)
 
 
@@ -577,14 +577,14 @@ ecoDynamicsCEARdefault = Flatten[ecoDynamicsCEARdefault, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEARdefault = Select[ecoDynamicsCEARdefault, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+extinctionPointsCEARdefault = Select[ecoDynamicsCEARdefault, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&];
 
 
 (* ::Text:: *)
 (*Also find the points where the mixotroph population does not go extinct*)
 
 
-noExtinctionPointsCEARdefault = Select[ecoDynamicsCEARdefault, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+noExtinctionPointsCEARdefault = Select[ecoDynamicsCEARdefault, (#[[4]] == False) && ((#[[6]] >= 10^-6) || ( #[[7]] >= 10^-6))&];
 
 
 (* ::Text:: *)
@@ -604,7 +604,7 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 Select[derivsForPlotsCEARdefault, #[[1]] == {1, 0}&][[All, 2]]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Conversion trade-off only*)
 
 
@@ -624,14 +624,14 @@ ecoDynamicsCEdefault = Flatten[ecoDynamicsCEdefault, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-extinctionPointsCEdefault = Select[ecoDynamicsCEdefault, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) (#[[6]] + #[[7]] < 10^-6)&];
+extinctionPointsCEdefault = Select[ecoDynamicsCEdefault, (* Extinction *) (#[[4]] == True) || (* Population < 10^-6 *) ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&];
 
 
 (* ::Text:: *)
 (*Also find the points where the mixotroph population does not go extinct*)
 
 
-noExtinctionPointsCEdefault = Select[ecoDynamicsCEdefault, (#[[4]] == False) && (#[[6]] + #[[7]] >= 10^-6)&];
+noExtinctionPointsCEdefault = Select[ecoDynamicsCEdefault, (#[[4]] == False) && ((#[[6]] >= 10^-6) || ( #[[7]] >= 10^-6))&];
 
 
 (* ::Text:: *)
@@ -651,7 +651,7 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 Select[derivsForPlotsCEdefault, #[[1]] == {1, 0}&][[All, 2]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Plots*)
 
 
@@ -766,6 +766,9 @@ Spacings -> {2, 3}],
 Spacer[50]]
 
 Export["stream_plots_varying_mortality.pdf", %]
+
+
+
 
 
 
