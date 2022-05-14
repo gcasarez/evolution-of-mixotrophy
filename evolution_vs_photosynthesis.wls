@@ -478,9 +478,24 @@ PlotLabel -> "No trade-off"] (* This is the title because we're assuming everyth
 (*Plot a line chart showing endpoint of evolution vs light*)
 
 
-linePlotCE = ListLinePlot[outcomesAndpPCE[[{3, 4, 1, 2}]], PlotStyle -> myColors[[{3, 4, 1, 2}]], (* This ordering is just to match the main text order *)
-PlotMarkers -> Graphics`PlotMarkers[][[{1, 2, 4, 5}]], (* Skip a symbol that represented extinction in the main text plot *)
-PlotLegends -> LineLegend[outcomeLabels[[{3, 4, 1, 2}]]], (* Order the names to match the order the outcomes were plotted in *)
+(* ::Text:: *)
+(*Make a set of lists showing how each outcome changes in frequency as the photosynthetic rate changes.*)
+(*E.g. the first list will be a set of {pP, strict heterotroph outcome} pairs*)
+
+
+outcomesAndpPCE = MapThread[{#1, #2}&, {Table[pPlevels, Dimensions[outcomeCountsCE][[2]]], Transpose[outcomeCountsCE]}, 2];
+
+
+(* ::Text:: *)
+(*Trim the list because we decided to only plot pP <= 1 values*)
+
+
+outcomesAndpPCE = outcomesAndpPCE[[All, 1;;8]];
+
+
+linePlotCE = ListLinePlot[outcomesAndpPCE[[{1, 2}]], PlotStyle -> myColors[[{1, 2}]], (* This ordering is just to match the main text order *)
+PlotMarkers -> Graphics`PlotMarkers[][[{4, 5}]], (* Start at 4 to skip a symbol that represented extinction in the main text plot *)
+PlotLegends -> LineLegend[outcomeLabels[[{1, 2}]]], (* Order the names to match the order the outcomes were plotted in *)
 Frame -> True, 
 FrameLabel -> {"Maximum photosynthetic rate of phototroph (" <> ToString[Superscript["day", "-1"], StandardForm] <> ")", "Fraction of simulations"},
 PlotLabel -> "Endpoint of evolution from heterotrophy", 
