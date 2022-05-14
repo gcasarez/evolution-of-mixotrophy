@@ -83,7 +83,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Resident and mutant dynamics*)
 
 
@@ -146,6 +146,74 @@ If[extinction == False,
 
 (* Return the ecological dynamics and whether extinction occured *)
 Return[{ecoDynamics, extinction}]]
+
+
+(* ::Subsection::Closed:: *)
+(*Function to find average ecological state (no mutant present)*)
+
+
+averageEcoState[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
+Module[{ecoDynamics, extinction, averagePrey, averageHeterotroph, averagePhototroph},
+
+(* Get the ecological dynamics *)
+{ecoDynamics, extinction} = residentEcoDynamics[retention, replication, surfaceLight, initialPrey, initialHeterotroph, initialPhototroph, opts];
+
+
+(* If the mixotroph went extinct, the mixotroph population sizes are 0. Maybe want to calculate the average prey population size with no mixotrophs, starting from initialPrey? Don't do this now *)
+If[extinction,
+	averagePrey = "Unknown";
+	averageHeterotroph = averagePhototroph = 0,
+
+(* If the mixotroph did not go extinct, calculate the average ecological state. Average the value over the last 1000 simulated time steps *)
+
+{averagePrey, averageHeterotroph, averagePhototroph} = 
+Table[NIntegrate[stateVar/. ecoDynamics, {t, 3000, 4000}, Evaluate[FilterRules[{opts}, Options[NIntegrate]]]]/(4000 - 3000),
+	{stateVar, {w[t], h[t], p[t]}}]];
+	
+(* Return the average population sizes and whether mixotroph went extinct *)
+Return[{extinction, averagePrey, averageHeterotroph, averagePhototroph}]]
+
+
+invasionDerivatives[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), 
+initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
+
+Module[{dMutantGrowthdRetention, dMutantGrowthdReplication},
+
+(* Derivative w.r.t. retention *)
+Module[{mutants, mutantDynamics, popSizes, derivatives},
+
+mutants = Select[retention + {-1, 1} * 1/10000, 0 <= # <= 1&];
+
+mutantDynamics = Map[{#, mutantAndResidentEcoDynamics[retention, replication, #, replication, surfaceLight, initialPrey, 0.99 * initialHeterotroph, 0.99 * initialPhototroph,  0.01 * initialHeterotroph,  0.01 * initialPhototroph, opts]}&,
+	mutants];
+
+(* Did introduction of any of the mutants cause an extinction? If so, the derivative of invasion fitness is maybe unclear. Set it to NA *)
+If[AnyTrue[mutantDynamics[[All, 2, 2]], #&], dMutantGrowthdRetention = "NA",
+
+(* Find the mutant's growth rate *)
+popSizes = Map[{#[[1]], Table[NIntegrate[stateVar/. #[[2, 1]], {t, 3000, 4000}(*, Evaluate[FilterRules[{opts}, Options[NIntegrate]]]*)]/(4000 - 3000), {stateVar, {h[t], p[t], h2[t], p2[t]}}]}&, mutantDynamics];
+derivatives = Map[(Total[#[[2, 3;;4]]] / Total[#[[2]]] - 0.01) (* Change in fraction of population compared to resident trait = mutant trait *) / (#[[1]] - retention) (* change in trait *)&, popSizes];
+
+dMutantGrowthdRetention = Mean[derivatives] ] ];
+
+(* Derivative w.r.t. replication *)
+Module[{mutants, mutantDynamics, popSizes, derivatives},
+
+mutants = Select[replication + {-1, 1} * 0.0001, 0 <= # <= 1&];
+
+mutantDynamics = Map[{#, mutantAndResidentEcoDynamics[retention, replication, retention, #, surfaceLight, initialPrey, 0.99 * initialHeterotroph, 0.99 * initialPhototroph,  0.01 * initialHeterotroph,  0.01 * initialPhototroph, opts]}&,
+	mutants];
+	
+(* Did introduction of any of the mutants cause an extinction? If so, the derivative of invasion fitness is maybe unclear. Set it to NA *)
+If[AnyTrue[mutantDynamics[[All, 2, 2]], #&], dMutantGrowthdReplication = "NA",
+
+(* Find the mutant's growth rate *)
+popSizes = Map[{#[[1]], Table[NIntegrate[stateVar/. #[[2, 1]], {t, 3000, 4000}(*, Evaluate[FilterRules[{opts}, Options[NIntegrate]]]*)]/(4000 - 3000), {stateVar, {h[t], p[t], h2[t], p2[t]}}]}&, mutantDynamics];
+derivatives = Map[(Total[#[[2, 3;;4]]] / Total[#[[2]]] - 0.01) (* Change in fraction of population compared to resident trait = mutant trait *) / (#[[1]] - replication) (* change in trait *)&, popSizes];
+
+dMutantGrowthdReplication = Mean[derivatives] ] ];
+
+Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
 (* ::Subsection::Closed:: *)
@@ -435,7 +503,7 @@ outcomeCountsNT = Outer[Count, outcomesNT, outcomeLabels, 1];
 outcomeCountsNT = outcomeCountsNT / Dimensions[evolutionSimsNT][[2]];
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Plot a bar chart showing how light affects the endpoint of evolution ("outcome")*)
 
 
@@ -472,7 +540,7 @@ Export["evolutionSimsCE_10e-6_light22-30.wdx", evolutionSimsCE];
 evolutionSimsCE = Import["evolutionSimsCE_10e-6_light22-30.wdx"];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Simulation evolution (light > 30 micromol photons/m^2/s)*)
 
 
@@ -516,7 +584,7 @@ ListLinePlot[evolutionSimsCE[[i, All, 2]], Frame -> True, FrameLabel -> {"Time (
 ImageSize -> 800]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Simulate strict heterotroph at low light (light 20-21 micromol photons/m^2/s)*)
 
 
@@ -538,7 +606,7 @@ evolutionSimsCE = Prepend[evolutionSimsCE, Table[{Table["NA", 1001], Table["NA",
 evolutionSimsCE = Prepend[evolutionSimsCE, Table[{Table["NA", 1001], Table["NA", 1001]}, 100]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Classify and count the outcomes of the simulations (endpoints of evolution)*)
 
 
@@ -549,7 +617,7 @@ outcomeCountsCE = Outer[Count, outcomesCE, outcomeLabels, 1];
 outcomeCountsCE = outcomeCountsCE / Dimensions[evolutionSimsCE][[2]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Plot a bar chart showing how light affects the endpoint of evolution ("outcome")*)
 
 
@@ -743,11 +811,8 @@ LabelStyle -> {Black, 12, "Arial"}, ImageSize -> 450]
 (*Figures: evolutionary simulations*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Plot all trade-off variations together*)
-
-
-?Row
 
 
 (* Add letter labels to plots *)
@@ -816,7 +881,7 @@ Export["trajectories_cear.pdf", trajectoryPlotsCEAR]
 SetOptions[Labeled, LabelStyle -> {}];
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Figures: example ecology and evolution plots*)
 
 
@@ -836,6 +901,7 @@ colorP2 = Darker[ColorData["HTML"]["Green"]];*)
 colorW = RGBColor["#77aa77"];
 colorH = colorH2 = RGBColor["#fdc552"];
 colorP = colorP2 = RGBColor["#4573ba"];
+colorM = RGBColor["#cd1aff"];
 colorRetention = RGBColor["#a02b2b"];
 colorReplication = RGBColor["#2c89a0"];
 
@@ -847,11 +913,11 @@ colorReplication = RGBColor["#2c89a0"];
 SetOptions[Labeled, LabelStyle -> {FontColor -> Black, FontSize -> 12, FontFamily -> "Arial"}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Ecology plots*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Run the simulation*)
 
 
@@ -875,17 +941,15 @@ Plot[{w[t]/.residentEcology, h[t]/.residentEcology, p[t]/.residentEcology}, {t, 
 {withMutantEcology, extinction} = mutantAndResidentEcoDynamics[0, 0, 1/100, 0, 25, avgPrey, (99/100) * avgHeterotroph, (99/100) * avgPhototroph,  (1/100) * avgHeterotroph, (1/100) * avgPhototroph, conversionTradeOff -> True, attackTradeOff -> True]
 
 
-?GridLines
-
-
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Plot prey ecological dynamics*)
 
 
-preyPlot = Plot[w[t-100] /. withMutantEcology, {t, 100, 1000}, PlotRange -> {{0, 1000}, {0, 20}}, PlotStyle -> colorW, Frame -> True, 
+preyPlot = Plot[w[t-100] /. withMutantEcology, {t, 100, 4100}, PlotRange -> {{0, 4000}, {0, 20}}, PlotStyle -> colorW, Frame -> True, 
 GridLines -> {{{100, Directive[Thick, Black, Dashed]}}, None},
 FrameLabel -> {{"Prey (cells/mL)", None}, {"Time (days)", None}}, ImageSize -> 350, ImagePadding -> {{50, 50}, {50, 10}}, PlotRangePadding -> 0];
-preyPlot = Show[preyPlot, Plot[w[t+3900] /. residentEcology, {t, 0, 100}, PlotStyle -> colorW]]
+
+preyPlot = Show[{preyPlot, Plot[w[t+3900] /. residentEcology, {t, 0, 100}, PlotStyle -> colorW], Graphics[{Gray, Opacity[0.2], Rectangle[{3000, 0}, {4000, 20}]}]}]
 
 
 (* ::Subsubsection:: *)
@@ -896,7 +960,7 @@ preyPlot = Show[preyPlot, Plot[w[t+3900] /. residentEcology, {t, 0, 100}, PlotSt
 (*Plot legend*)
 
 
-mixotrophPlotLegend = LineLegend[{colorH, Directive[colorH2, Dashed], colorP, Directive[colorP2, Dashed]}, {"Resident heterotroph", "Mutant heterotroph", "Resident phototroph", "Mutant phototroph"}];
+(*mixotrophPlotLegend = LineLegend[{colorH, Directive[colorH2, Dashed], colorP, Directive[colorP2, Dashed]}, {"Resident heterotroph", "Mutant heterotroph", "Resident phototroph", "Mutant phototroph"}];*)
 
 
 (* ::Text:: *)
@@ -941,26 +1005,44 @@ Frame -> True, FrameTicks -> {{heterotrophTicks, phototrophTicks}, {Automatic, A
 FrameLabel -> {{"Heterotroph biomass (cells/mL)", "Phototroph biomass (cells/mL)"}, {"Time (days)", None}}, ImageSize -> 350, ImagePadding -> {{50, 50}, {50, 10}}, PlotRangePadding -> 0];
 
 
+(* ::Text:: *)
+(*This code plots the total mixotroph population (combined phototrophs and heterotrophs)*)
+
+
+mixotrophPlot = Plot[{(h[t - 100] + p[t - 100]) /. withMutantEcology // Chop, (h2[t - 100] + p2[t - 100]) /. withMutantEcology // Chop}, {t, 100, 4100}, 
+GridLines -> {{{100, Directive[Thick, Black, Dashed]}}, None},
+PlotRange -> {{0, 4000}, {0, 0.6}}, PlotStyle -> {Directive[Thick, colorM], Directive[Thick, Dashed, colorM]}];
+
+mixotrophPlot = Show[{mixotrophPlot, 
+		Plot[(h[t + 3900] + p[t + 3900]) /. residentEcology // Chop, {t, 0, 100}, PlotRange -> {{0, 1000}, {0, 0.5}}, PlotStyle -> Directive[Thick, colorM]],
+		Graphics[{Gray, Opacity[0.2], Rectangle[{3000, 0}, {4000, 20}]}]},
+	Frame -> True,
+	FrameLabel -> {{"Consumer biomass (cells/mL)", None}, {"Time (days)", None}}, 
+	ImageSize -> 350, ImagePadding -> {{50, 50}, {50, 10}}, PlotRangePadding -> 0]
+
+
 (* ::Subsubsection:: *)
 (*Plot the proportion of the population that is the mutant*)
 
 
-mutantProportionPlot = Plot[((h2[t - 100] + p2[t - 100])/ (h[t - 100] + p[t - 100] + h2[t - 100] + p2[t - 100]))/. withMutantEcology, {t, 100, 1000}, PlotRange -> {{0, 1000}, {0, 1}}, PlotStyle -> Black, Frame -> True,
+mutantProportionPlot = Plot[((h2[t - 100] + p2[t - 100])/ (h[t - 100] + p[t - 100] + h2[t - 100] + p2[t - 100]))/. withMutantEcology, {t, 100, 4100}, PlotRange -> {{0, 4000}, {0, 1}}, PlotStyle -> Black, Frame -> True,
 GridLines -> {{{100, Directive[Thick, Black, Dashed]}}, None},
 FrameLabel -> {"Time (days)", "Mutant proportion of population"}, ImageSize -> 350, ImagePadding -> {{50, 50}, {50, 10}}, PlotRangePadding -> 0];
-mutantProportionPlot = Show[mutantProportionPlot, Plot[0, {t, 0, 100}, PlotStyle -> Black]];
+
+mutantProportionPlot = Show[{mutantProportionPlot, Plot[0, {t, 0, 100}, PlotStyle -> Black], 
+		Graphics[{Gray, Opacity[0.2], Rectangle[{3000, 0}, {4000, 20}]}]}];
 
 
 (* ::Subsubsection:: *)
-(*Combine plots into a column*)
+(*Combine plots into a list*)
 
 
-ecologyPlots = Column[{Labeled[preyPlot, "(A) Prey ecology", Top, Alignment -> {Left, Baseline}],
-Labeled[mixotrophPlot, "(B) Mixotroph ecology", Top, Alignment -> Left],
-Labeled[mutantProportionPlot, "(C) Mutant spread", Top, Alignment -> Left]}]
+ecologyPlots = {Labeled[Show[preyPlot, LabelStyle -> {Black, "Arial", 12}], "(A) Prey ecology", Top, Alignment -> {Left, Baseline}],
+Labeled[Show[mixotrophPlot, LabelStyle -> {Black, "Arial", 12}],  "(B) Mixotroph ecology", Top, Alignment -> Left],
+Labeled[Show[mutantProportionPlot, LabelStyle -> {Black, "Arial", 12}], "(C) Mutant spread", Top, Alignment -> Left]}
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Evolution plots*)
 
 
@@ -999,20 +1081,154 @@ ImagePadding -> {{50, 50}, {50, 10}}, PlotStyle -> Black, PlotRange -> {{0, 1}, 
 
 
 (* ::Subsubsection:: *)
-(*Combine plots into a column*)
+(*Find and plot the "equilibrium" population sizes over evolutionary time*)
 
 
-evolutionPlots = Column[{Labeled[retentionPlot, "(D) Retention evolution", Top, Alignment -> {Left, Baseline}],
-Labeled[replicationPlot, "(E) Replication evolution", Top, Alignment -> Left],
-Labeled[traitSpacePlot, "(F) Evolutionary trajectory in trait space", Top, Alignment -> Left]}]
+averagePopSizes = Table[Module[{residentEcology, extinction, retention = evolutionSimsCEAR[[4, 1, 1, i]], replication = evolutionSimsCEAR[[4, 1, 2, i]]}, 
+	{residentEcology, extinction} = residentEcoDynamics[retention, replication, 25, 4, 1, 1, conversionTradeOff -> True, attackTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6];
+	Table[
+		If[extinction, {"Unknown", 0},
+			NIntegrate[stateVar/. residentEcology, {t, 3000, 4000}]/(4000 - 3000)], 
+	{stateVar, {w[t], (h[t] + p[t])}}]],
+{i, Length[evolutionSimsCEAR[[4, 1, 1]]]}];
 
 
-(* ::Subsection:: *)
+averagePopPlot = ListLinePlot[{averagePopSizes[[All, 1]], averagePopSizes[[All, 2]]}, PlotStyle -> {colorW, Directive[Thick, colorM]},
+Frame -> True, FrameLabel -> {"Time (mutations that have arisen)", "Population size (cells/mL)"}, ImageSize -> 350,
+ImagePadding -> {{50, 50}, {50, 10}}, PlotStyle -> Black, PlotRange -> {{0, 1000}, {0, 17}}, PlotRangePadding -> 0];
+
+
+(* ::Subsubsection:: *)
+(*Combine plots into a list*)
+
+
+evolutionPlots = {Labeled[Show[averagePopPlot, LabelStyle -> {Black, "Arial", 12}], "(D) Average population size", Top, Alignment -> Left],
+Labeled[Show[replicationPlot, LabelStyle -> {Black, "Arial", 12}], "(E) Replication evolution", Top, Alignment -> Left],
+Labeled[Show[retentionPlot, LabelStyle -> {Black, "Arial", 12}], "(F) Retention evolution", Top, Alignment -> {Left, Baseline}],
+Labeled[Show[traitSpacePlot, LabelStyle -> {Black, "Arial", 12}], "(G) Evolutionary trajectory in trait space", Top, Alignment -> Left]}
+
+
+
+
+(* ::Subsection::Closed:: *)
 (*Combine ecology and evolution plots into the figure*)
 
 
-Row[{mixotrophPlotLegend, ecologyPlots, evolutionPlots}]
+myArrow = Graphics[{Thick, Line[{{1/4, 1/8}, {1/4, 3/8}, {5/8, 0}, {1/4, -3/8}, {1/4, -1/8}}],
+   Line[{{1/4, 1/8}, {-1/2, 1/8}, {-1/2, -1/8}, {1/4, -1/8}}]}];
+
+
+mixotrophPlotLegend = Framed[ (* put a frame around the legend *)
+	LineLegend[{colorW, Directive[Thick, colorM], Directive[Thick, Dashed, colorM]}, {"Prey", "Resident consumer", "Mutant consumer"}, LegendLabel -> "Population",
+		LabelStyle -> {14, "Arial", Black}], 
+(* frame options *)
+RoundingRadius -> 10, FrameStyle -> {Thin, Black}];
+
+
+Grid[Transpose[{Prepend[ecologyPlots, Style["Ecological Dynamics", FontFamily -> "Arial", FontColor -> Black, FontSize -> 12]],
+{"", "", Show[myArrow, ImageSize -> 50], ""},
+Prepend[evolutionPlots[[1;;3]], Style["Evolutionary Dynamics", FontFamily -> "Arial", FontColor -> Black, FontSize -> 12]], 
+{"", "", Invisible[Show[myArrow, ImageSize -> 50]], ""},
+{"", mixotrophPlotLegend, evolutionPlots[[4]], ""}}],
+Alignment -> Center, Spacings -> 1]
+
 Export["example_timeseries.pdf", %]
 
 
+(* ::Section:: *)
+(*Check whether the mixotroph population size dropped very low*)
 
+
+(* ::Subsection:: *)
+(*Attack & conversion trade-offs*)
+
+
+(* ::Text:: *)
+(*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
+
+
+ecoDynamicsCEAR = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
+{light, simLightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+ecoDynamicsCEAR = Flatten[ecoDynamicsCEAR, {{1}, {2,3}, {4}}];
+
+
+(* ::Text:: *)
+(*What light/trait combinations cause the mixotroph population to go extinct?*)
+
+
+extinctionPointsCEAR = Map[Select[(#[[4]] == True) || ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&], ecoDynamicsCEAR];
+(* Also find the points where the mixotroph population does not go extinct *)
+noExtinctionPointsCEAR = Map[Select[(#[[4]] == False) && ((#[[6]] >= 10^-6) || (#[[7]] >= 10^-6)) &], ecoDynamicsCEAR];
+
+
+(* ::Text:: *)
+(*Plot the points where the population goes extinct (green dots) and the evolutionary trajectories. The population doesn't go near the extinction points.*)
+
+
+Table[Show[{
+(* Plot of the mixotroph population sizes *)
+ListDensityPlot[Map[{#[[2]], #[[3]], #[[6]] + #[[7]]}&, ecoDynamicsCEAR[[i]]], 
+FrameLabel -> {"Retention", "Replication"}, PlotRangePadding -> 0.02,
+PlotLabel -> "(" <> ToUpperCase[Alphabet[]][[i]] <> ") Mixotroph population (cells/mL)\nSurface light = " <> ToString[simLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", 
+ImageSize -> 400, PlotLegends -> Automatic, PlotRange -> All, ClippingStyle -> Black, ColorFunction -> "ValentineTones"],
+
+(* Plot points where the mixotroph goes extinct *)
+ListPlot[extinctionPointsCEAR[[i, All, {2, 3}]], PlotStyle -> {Green, PointSize[Large]}],
+
+(* Plot the evolutionary trajectories*)
+ListLinePlot[Transpose[evolutionSimsCEAR[[i]], {1, 3, 2}]]}],
+
+{i, Length[ecoDynamicsCEAR]}]
+
+
+(* ::Subsection:: *)
+(*Conversion trade-off only*)
+
+
+(* ::Text:: *)
+(*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
+
+
+ecoDynamicsCE = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> False]],
+{light, simLightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+ecoDynamicsCE = Flatten[ecoDynamicsCE, {{1}, {2,3}, {4}}];
+
+
+(* ::Text:: *)
+(*What light/trait combinations cause the mixotroph population to go extinct?*)
+
+
+extinctionPointsCE = Map[Select[(#[[4]] == True) || ((#[[6]] < 10^-6) && (#[[7]] < 10^-6))&], ecoDynamicsCE];
+(* Also find the points where the mixotroph population does not go extinct *)
+noExtinctionPointsCE = Map[Select[(#[[4]] == False) && ((#[[6]] >= 10^-6) || (#[[7]] >= 10^-6)) &], ecoDynamicsCE];
+
+
+(* ::Text:: *)
+(*The mixotroph shouldn't go extinct anywhere!*)
+
+
+extinctionPointsCE
+
+
+(* ::Text:: *)
+(*Plot the evolutionary trajectories vs mixotroph population size, just to see them together.*)
+
+
+Table[Show[{
+(* Plot of the mixotroph population sizes *)
+ListDensityPlot[Map[{#[[2]], #[[3]], #[[6]] + #[[7]]}&, ecoDynamicsCE[[i]]], 
+FrameLabel -> {"Retention", "Replication"}, PlotRangePadding -> 0.02,
+PlotLabel -> "(" <> ToUpperCase[Alphabet[]][[i]] <> ") Mixotroph population (cells/mL)\nSurface light = " <> ToString[simLightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", 
+ImageSize -> 400, PlotLegends -> Automatic, PlotRange -> All, ClippingStyle -> Black, ColorFunction -> "ValentineTones"],
+
+(* Plot points where the mixotroph goes extinct *)
+ListPlot[extinctionPointsCE[[i, All, {2, 3}]], PlotStyle -> {Green, PointSize[Large]}],
+
+(* Plot the evolutionary trajectories*)
+ListLinePlot[Transpose[evolutionSimsCE[[i]], {1, 3, 2}]]}],
+
+{i, Length[ecoDynamicsCE]}]
