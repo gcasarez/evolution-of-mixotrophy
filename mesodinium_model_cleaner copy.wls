@@ -5,7 +5,7 @@
 (*Preliminaries*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Equations*)
 
 
@@ -23,7 +23,7 @@ kappa[kW_, kH_,kP_,kH2_,kP2_,w_,h_,p_,h2_,p2_]:=
 kW w+kH h+ kP p+kH2 h2+kP2 p2 
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Trade-Off Equations*)
 
 
@@ -53,42 +53,39 @@ kW w+kH h+ kP p+kH2 h2+kP2 p2
 (*Conversion: Set gammaC=0.7*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Parameters*)
 
 
-pW=3
-gammaP=2.9/3
-sigmaP=0
-kW=0.1
-kH=0.05
-kP=0.15
-kH2=0.015
-kP2=0.15
-hW=50
-hP=50
-hP2=50
-lW=0.5
-lH=0.1
-lP=0.4
-lH2=0.1
-lP2=0.4
-dMax=0.3
-sigmaD=0
-a=0.15
-a2=0.15
-gammaA=0
-sigmaA=0
-phi=0
-phi2=0
-c=0.1
-gammaC=0.7
-eta=0
-eta2=0
-iIn=25
+pW=3;
+gammaP=2.9/3;
+sigmaP=0;
+kW=0.1;
+kH=0.05;
+kP=0.15;
+kH2=0.05; (* Changing this to match kH2 *)
+kP2=0.15;
+hW=50;
+hP=50;
+hP2=50;
+lW=0.5;
+lH=0.1;
+lP=0.4;
+lH2=0.1;
+lP2=0.4;
+dMax=0.3;
+sigmaD=0;
+a=0.15;
+a2=0.15;
+gammaA=1;
+sigmaA=1;
+c=0.1;
+gammaC=1;
+sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
+iIn=25;
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Initial Values*)
 
 
@@ -155,7 +152,7 @@ hStarHat = Abs[hStarHat]
 (*5. Restart simulation*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Initialize, Before Each *)
 
 
@@ -209,6 +206,11 @@ hStarHat = Abs[hStarHat]
 
 (* ::Subsection:: *)
 (*Version 11 (8/26/2021)*)
+
+
+(* I've added these because I think they also need to be initialized for the code block below to run *)
+listOfEventTimeList = {};
+listOfEventTimeList2 = {2};
 
 
 Do[
@@ -292,7 +294,7 @@ AppendTo[listOfPhiList[[j]],phi]},600]},
 {j,1}]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Plotting*)
 
 
@@ -311,7 +313,7 @@ ListLinePlot[{listOfEtaList[[1]],listOfPhiList[[1]]},PlotRange->{0,1},
 PlotLegends->{"Eta","Phi"}]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Time-Series*)
 
 
@@ -320,7 +322,7 @@ PlotLegends->{"Eta","Phi"}]
 (*Choose the desired phi and eta and plug in those values.*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Resident Only: Choose phi and eta*)
 
 
@@ -341,7 +343,7 @@ hFunc = Piecewise[{{h[t]/.functionEquilibrium,t<= eventTime},{0,t>eventTime}}],
 pFunc = Piecewise[{{p[t]/.functionEquilibrium,t<= eventTime},{0,t>eventTime}}]},1]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Resident Only: Iterate Through Light (Bifurcation Diagram)*)
 
 
@@ -388,7 +390,7 @@ AppendTo[listOfmixMaxList,mixMax],
 AppendTo[listOfmixMinList,mixMin]},1]},{q,1,11}]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Resident vs Mutant: Chose phi, eta, phi2, eta2*)
 
 
@@ -430,7 +432,7 @@ If[(meanEndH2+meanEndP2) > 1.02 * (meanStartH2 + meanStartP2),{mutSuccess = 1},{
 }, 1]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Plotting*)
 
 
@@ -438,7 +440,7 @@ Plot[{wFuncEq,hFuncEq,pFuncEq},{t,0,8000},PlotRange->{0,15},
 PlotLegends->{"W","H","P"},PlotStyle->{Darker[Green],Blue,Black}]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Stream Plots and Heat Maps*)
 
 
@@ -453,11 +455,11 @@ PlotLegends->{"W","H","P"},PlotStyle->{Darker[Green],Blue,Black}]
 (*Now, we have a list of coordinates and their respective displacements.*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Preliminaries*)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Create Phi and Eta Grid*)
 
 
@@ -473,7 +475,7 @@ Do[{
 phiEtaGrid[[k]][[i]]={(i-1)*0.1,(k-1)*0.1}},{k,1,11}]},{i,1,11}]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Stream Plot with Resident Pop (W,H, or P) Heat Map*)
 
 
@@ -602,7 +604,7 @@ AppendTo[pairOfVecW,{phiEtaGrid[[i]][[j]],{displacementVec,meanW}}]},
 {i,1,11}]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Stream Plot with W Heat Map, H+P Heat Map, and P/(P+H) Heat Map*)
 
 
