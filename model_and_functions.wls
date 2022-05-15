@@ -53,7 +53,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Set default options for analyses*)
 
 
@@ -78,13 +78,14 @@ kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2
 
 
 Options[residentEcoDynamics] = Options[averageEcoState] =
-Options[mutantAndResidentEcoDynamics] = Options[invasionDerivatives] =
-Options[simulateEvolution] = 
+Options[minimumMixotroph] =
+Options[mutantAndResidentEcoDynamics] =
+Options[invasionDerivatives] = Options[simulateEvolution] = 
 (* The options *)
 Join[{attackTradeOff -> False, conversionTradeOff -> False}, Options[NDSolve]];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Ecological dynamics*)
 
 
@@ -167,6 +168,30 @@ Table[NIntegrate[stateVar/. ecoDynamics, {t, 3000, 4000}, Evaluate[FilterRules[{
 Return[{extinction, averagePrey, averageHeterotroph, averagePhototroph, averageMixotroph}]]
 
 
+(* ::Subsection:: *)
+(*Function to find the minimum mixotroph population size, with no mutant present*)
+
+
+minimumMixotroph[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
+Module[{ecoDynamics, extinction, minMixotroph},
+
+(* Get the ecological dynamics *)
+{ecoDynamics, extinction} = residentEcoDynamics[retention, replication, surfaceLight, initialPrey, initialHeterotroph, initialPhototroph, opts];
+
+
+(* If the mixotroph went extinct, the mixotroph population sizes are 0. Maybe want to calculate the average prey population size with no mixotrophs, starting from initialPrey? Don't do this now *)
+If[extinction,
+	minMixotroph = 0,
+
+(* If the mixotroph did not go extinct, find the minimum mixotroph population size reached over the last 1000 simulated time steps *)
+
+	minMixotroph = 
+		NMinimize[{(h[t] + p[t])/. ecoDynamics, 3000 <= t <= 4000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]]]; (* [[1]] gives us the minimum [[2]] would give argMin]*)
+		
+(* Return the average population sizes and whether mixotroph went extinct *)
+Return[minMixotroph]]
+
+
 (* ::Subsection::Closed:: *)
 (*Function to find the ecological dynamics when a resident and a mutant mixotroph are both present*)
 
@@ -229,11 +254,11 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Invasion fitness*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Function to find the derivative of invasion fitness*)
 
 
@@ -255,7 +280,7 @@ If[AnyTrue[mutantDynamics[[All, 2, 2]], #&], dMutantGrowthdRetention = "NA",
 
 (* Find the mutant's growth rate *)
 popSizes = Map[{#[[1]], Table[NIntegrate[stateVar/. #[[2, 1]], {t, 3000, 4000}]/(4000 - 3000), {stateVar, {h[t] + p[t], h2[t] + p2[t]}}]}&, mutantDynamics];
-derivatives = Map[(#[[2, 1]] / Total[#[[2]]] - 0.01) (* Change in fraction of population compared to resident trait = mutant trait *) / (#[[1]] - retention) (* change in trait *)&, popSizes];
+derivatives = Map[(#[[2, 2]] / Total[#[[2]]] - 0.01) (* Change in fraction of population compared to resident trait = mutant trait *) / (#[[1]] - retention) (* change in trait *)&, popSizes];
 
 dMutantGrowthdRetention = Mean[derivatives] ] ];
 
@@ -271,15 +296,16 @@ mutantDynamics = Map[{#, mutantAndResidentEcoDynamics[retention, replication, re
 If[AnyTrue[mutantDynamics[[All, 2, 2]], #&], dMutantGrowthdReplication = "NA",
 
 (* Find the mutant's growth rate *)
-popSizes = Map[{#[[1]], Table[NIntegrate[stateVar/. #[[2, 1]], {t, 3000, 4000}(*, Evaluate[FilterRules[{opts}, Options[NIntegrate]]]*)]/(4000 - 3000), {stateVar, {h[t] + p[t], h2[t] + p2[t]}}]}&, mutantDynamics];
-derivatives = Map[(#[[2, 1]] / Total[#[[2]]] - 0.01) (* Change in fraction of population compared to resident trait = mutant trait *) / (#[[1]] - replication) (* change in trait *)&, popSizes];
+popSizes = Map[{#[[1]], Table[NIntegrate[stateVar/. #[[2, 1]], {t, 3000, 4000}(*, Evaluate[FilterRules[{opts}, Options[NIntegrate]]]*)]/(4000 - 3000), 
+	{stateVar, {h[t] + p[t], h2[t] + p2[t]}}]}&, mutantDynamics];
+derivatives = Map[(#[[2, 2]] / Total[#[[2]]] - 0.01) (* Change in fraction of population compared to resident trait = mutant trait *) / (#[[1]] - replication) (* change in trait *)&, popSizes];
 
 dMutantGrowthdReplication = Mean[derivatives] ] ];
 
 Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Simulate evolution*)
 
 
