@@ -53,7 +53,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Set default options for analyses*)
 
 
@@ -74,10 +74,6 @@ kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2
 
 
 (* ::Item:: *)
-(*Photosynthetic rate of the phototroph (option photoEfficiency) : gammaP. The photosynthetic rate of the phototroph is gammaP * the prey' s photosynthetic rate. Note that gammaP is not defined here, but rather in the script where these functions are called.*)
-
-
-(* ::Item:: *)
 (*NDSolve default options*)
 
 
@@ -85,10 +81,10 @@ Options[residentEcoDynamics] = Options[averageEcoState] =
 Options[mutantAndResidentEcoDynamics] = Options[invasionDerivatives] =
 Options[simulateEvolution] = 
 (* The options *)
-Join[{attackTradeOff -> False, conversionTradeOff -> False, photoEffiency -> gammaP}, Options[NDSolve]];
+Join[{attackTradeOff -> False, conversionTradeOff -> False}, Options[NDSolve]];
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Ecological dynamics*)
 
 
@@ -109,7 +105,6 @@ phi = retention, eta = replication, iIn = surfaceLight,
 (* Implement trade-offs *)
 sigmaA = If[OptionValue[attackTradeOff], 1, 0], (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
 gammaC = If[OptionValue[conversionTradeOff], 0.7, 1], (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
-gammaP = OptionValue[photoEffiency], (* The photosynthetic rate of phototroph = gammaP * pW, where pW is prey's photosynthetic rate *)
 
 (* Set up a variable that will become true if the mixotroph population cannot persist *)
 extinction = False},
@@ -192,7 +187,6 @@ iIn = surfaceLight,
 (* Implement trade-offs *)
 sigmaA = If[OptionValue[attackTradeOff], 1, 0], (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
 gammaC = If[OptionValue[conversionTradeOff], 0.7, 1], (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
-gammaP = OptionValue[photoEffiency], (* The photosynthetic rate of phototroph = gammaP * pW, where pW is prey's photosynthetic rate *)
 
 (* Set up a variable that will become true if both the resident and mutant mixotroph populations cannot persist *)
 extinction = False},
@@ -235,11 +229,11 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Invasion fitness*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to find the derivative of invasion fitness*)
 
 
@@ -285,11 +279,11 @@ dMutantGrowthdReplication = Mean[derivatives] ] ];
 Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Simulate evolution*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to constrain mutations to biologically possible values*)
 
 
@@ -300,7 +294,7 @@ Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 constrainMutation = Map[Max[Min[#, 1], 0]&];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to simulation population evolution*)
 
 
