@@ -528,7 +528,7 @@ Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlots
 {i, Length[derivsForPlotsMultiplicativeAR]}]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Make some stream plots*)
 
 
@@ -548,39 +548,119 @@ Show[ListStreamDensityPlot[Map[{#[[1]], {#[[2]], #[[3,1]]}}&, derivsForPlotsMult
 
 
 (* ::Section:: *)
+(*Plot the no attack trade-off case for comparison*)
+
+
+(* ::Subsection:: *)
+(*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
+
+
+ecoDynamicsCE = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> False]],
+{light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+ecoDynamicsCE = Flatten[ecoDynamicsCE, {{1}, {2,3}, {4}}];
+
+
+(* ::Subsection:: *)
+(*What light/trait combinations cause the mixotroph population to go extinct?*)
+
+
+minPopSizesCE = ParallelTable[{light, retention, replication, 
+	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
+	conversionTradeOff -> True, attackTradeOff -> False]},
+ {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+minPopSizesCE = Flatten[minPopSizesCE, {{1}, {2, 3}}];
+
+
+extinctionPointsCE = Map[Select[#[[4]] <= 10^-6&], minPopSizesCE];
+
+
+(* ::Text:: *)
+(*Where does the population not go extinct?*)
+
+
+noExtinctionPointsCE = Pick[ecoDynamicsCE, Map[#[[4]] > 10^-6&, minPopSizesCE, {2}]];
+
+
+(* ::Subsection:: *)
+(*Find the derivative of invasion fitness*)
+
+
+derivsForPlotsCE = 
+ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]], #[[6]], #[[7]], PrecisionGoal -> 6, AccuracyGoal -> 6, MaxSteps -> 40000, conversionTradeOff -> True, attackTradeOff -> False],
+{#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsCE, {2}];
+
+
+(* ::Text:: *)
+(*Quick vector plot to get an idea of the magnitude/direction of derivative of invasion fitness. Colors indicate magnitude; arrows indicate direction*)
+
+
+Table[
+Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlotsCE[[i]]], 
+	VectorPoints -> noExtinctionPointsCE[[i, All, 2;;3]],
+	ColorFunction -> "Pastel", VectorStyle -> Black, PlotLegends -> Automatic, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
+	PlotLabel -> "Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium, VectorScale -> {Automatic, Automatic, None}], 
+	
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/20, 0], Max[#[[2]] - 1/20, 0]}, {Min[#[[1]] + 1/20, 1], Min[#[[2]] + 1/20, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]],
+{i, Length[derivsForPlotsCE]}]
+
+
+(* ::Subsection:: *)
+(*Make some stream plots*)
+
+
+maxPrey = Max[Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCE][[All, All, 5]]]];
+preyDensityColors[p_] := ColorData["Pastel"][Sqrt[p/maxPrey]]
+
+
+Table[
+Show[ListStreamDensityPlot[Map[{#[[1]], {#[[2]], #[[3,1]]}}&, derivsForPlotsCE[[i]]], 
+	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 0,
+	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False, 
+	StreamStyle -> Black, PlotLegends -> Automatic, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
+	PlotLabel -> "(" <> Capitalize[Alphabet[][[i]]] <> ") Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium], 
+	
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/20, 0], Max[#[[2]] - 1/20, 0]}, {Min[#[[1]] + 1/20, 1], Min[#[[2]] + 1/20, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]],
+{i, Length[derivsForPlotsCE]}]
+
+
+(* ::Section:: *)
 (*Final plots*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Set up plot properties*)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Color scheme (prey density)*)
 
 
 ClearAll[preyDensityColors]
 
 
-maxPrey = Max[Flatten[Map[Select[#[[4]] == False&], ecoDynamicsAdditiveAR][[All, All, 5]]]];
+maxPrey = Max[{noExtinctionPointsAdditiveAR[[All, All, 5]], noExtinctionPointsMultiplicativeAR[[All, All, 5]], noExtinctionPointsCE[[All, All, 5]]}];
 
 
 preyDensityColors[p_] := ColorData[{"BeachColors", "Reverse"}][Log[(p + 1)]/Log[maxPrey + 1]]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Set font*)
 
 
-SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 16, FontFamily -> "Arial", FontColor -> Black}];
+SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}];
 
 
-SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 16, FontFamily -> "Arial", FontColor -> Black}];
+SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}];
 (*SetOptions[SwatchLegend, LabelStyle \[Rule] {FontSize -> 12, FontFamily -> "Arial"}];
 SetOptions[PointLegend, LabelStyle \[Rule] {FontSize -> 12, FontFamily -> "Arial"}];*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Make individual plots*)
 
 
@@ -589,7 +669,7 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsAddit
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> "(" <> Capitalize[Alphabet[][[i]]] <> ") Additive attack tradeoff\nSurface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium], 
+	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + 2 * Length[lightLevels]]]] <> ")", {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
 	
 	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsAdditiveAR[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsAdditiveAR[[i, All, 1]]*)],
 	
@@ -602,12 +682,25 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsMulti
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> "(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ") Multiplicative attack tradeoff\nSurface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium], 
+	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ")", {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
 	
 	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsMultiplicativeAR[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsAdditiveAR[[i, All, 1]]*)],
 	
 	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsMultiplicativeAR[[i, All, 2;;3]]]]}],
 {i, Length[derivsForPlotsMultiplicativeAR]}]
+
+
+streamPlotsCE = Table[
+Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCE[[i]]], 
+	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
+	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
+	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
+	PlotLabel ->Pane[Style["(" <> Capitalize[Alphabet[][[i]]] <> ")", {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
+	
+	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsCE[[i, All, 1]]*)],
+	
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]}],
+{i, Length[derivsForPlotsCE]}]
 
 
 (* ::Subsection:: *)
@@ -619,13 +712,28 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsMulti
 
 
 Column[{Row[{Grid[
+
+	(* Row labels *)
+	Join[Map[Rotate[Style[#, {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], 90Degree]&, 
+		{{""}, {"No tradeoff"}, {"Multiplicative Attack tradeoff"}, {"Additive Attack tradeoff"}}, {2}],
+		
+	(* Column labels *)
+	Join[Map[Style[#, {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}]&, 
+		{Table[ToString[light] <> " \[Mu]mol photons/" <> ToString[Superscript["m", "2"], StandardForm] <> "/s", {light, lightLevels}]},
+		{2}],
+		
 	(* Some extremely fancy rasterization of the plots without rasterizing their labels (removes the labels, raterizes, and re-adds the labels *)
 	Map[
 		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
 		Append[(FrameLabel /. Options[#])[[All, 1]], Style[(PlotLabel /. Options[#]), TextAlignment -> Center]], {Left, Bottom, Top},
 		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
-	{streamPlotsAdditiveAR, streamPlotsMultiplicativeAR}, {2}], 
-Spacings -> {2, 3}], 
+	{streamPlotsCE, streamPlotsMultiplicativeAR, streamPlotsAdditiveAR}, {2}]
+
+	(* Finish up adding the row and column labels *)	
+	], 2],
+	
+	Spacings -> {2, 3}],
+ 
 	(* Legend *)
 		Column[{
 		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
@@ -639,19 +747,19 @@ Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset
 Export["Alternate_attack_tradeoff.pdf", %]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Plot the attack rate at each point for both trade-offs*)
 
 
-Row[{ContourPlot[1 - phi * eta, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "Multiplicative trade-off", 
+Row[{ContourPlot[1 - phi * eta, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "(A) Multiplicative trade-off", 
 	ColorFunction -> "GrayTones", ColorFunctionScaling -> None, LabelStyle -> {Black, "Arial", 18}, ImageSize -> 400, Contours -> Range[0, 1, 1/10]],
 	
-ContourPlot[1 - (phi + eta)/2, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "Additive trade-off", 
+ContourPlot[1 - (phi + eta)/2, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "(B) Additive trade-off", 
 	ColorFunction -> "GrayTones", ColorFunctionScaling -> None, LabelStyle -> {Black, "Arial", 18}, ImageSize -> 400, Contours -> Range[0, 1, 1/10]],
 	
 BarLegend["GrayTones", Range[0, 1, 1/10], LegendLabel -> "Fraction of maximum\nattack rate", LabelStyle -> {Black, "Arial", 18}, LegendMarkerSize -> 300]}, Spacer[20]]
 
-Export["Attack_rate_vs_tradeoff.png", %]
+Export["Attack_rate_vs_tradeoff.pdf", %]
 
 
 
