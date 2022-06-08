@@ -652,10 +652,10 @@ preyDensityColors[p_] := ColorData[{"BeachColors", "Reverse"}][Log[(p + 1)]/Log[
 (*Set font*)
 
 
-SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}];
+SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}];
 
 
-SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}];
+SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}];
 (*SetOptions[SwatchLegend, LabelStyle \[Rule] {FontSize -> 12, FontFamily -> "Arial"}];
 SetOptions[PointLegend, LabelStyle \[Rule] {FontSize -> 12, FontFamily -> "Arial"}];*)
 
@@ -669,7 +669,7 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsAddit
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + 2 * Length[lightLevels]]]] <> ")", {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
+	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + 2 * Length[lightLevels]]]] <> ")", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
 	
 	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsAdditiveAR[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsAdditiveAR[[i, All, 1]]*)],
 	
@@ -682,7 +682,7 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsMulti
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ")", {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
+	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ")", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
 	
 	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsMultiplicativeAR[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsAdditiveAR[[i, All, 1]]*)],
 	
@@ -695,7 +695,7 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCE[[
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel ->Pane[Style["(" <> Capitalize[Alphabet[][[i]]] <> ")", {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
+	PlotLabel ->Pane[Style["(" <> Capitalize[Alphabet[][[i]]] <> ")", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
 	
 	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], StreamStyle -> Black(*, StreamPoints \[Rule] noExtinctionPointsCE[[i, All, 1]]*)],
 	
@@ -714,35 +714,35 @@ Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCE[[
 Column[{Row[{Grid[
 
 	(* Row labels *)
-	Join[Map[Rotate[Style[#, {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}], 90Degree]&, 
-		{{""}, {"No tradeoff"}, {"Multiplicative Attack tradeoff"}, {"Additive Attack tradeoff"}}, {2}],
+	Join[Map[Rotate[Style[#, {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black, TextAlignment -> Center}], 90Degree]&, 
+		{{"", ""}, {"No tradeoff", "Replication probability (\[Eta])"}, {"Multiplicative Attack tradeoff", "Replication probability (\[Eta])"}, {"Additive Attack tradeoff", "Replication probability (\[Eta])"}, {"", ""}}, {2}],
 		
 	(* Column labels *)
-	Join[Map[Style[#, {FontSize -> 20, FontFamily -> "Arial", FontColor -> Black}]&, 
+	Join[Map[Style[#, {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black, TextAlignment -> Center}]&, 
 		{Table[ToString[light] <> " \[Mu]mol photons/" <> ToString[Superscript["m", "2"], StandardForm] <> "/s", {light, lightLevels}]},
 		{2}],
 		
 	(* Some extremely fancy rasterization of the plots without rasterizing their labels (removes the labels, raterizes, and re-adds the labels *)
 	Map[
 		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
-		Append[(FrameLabel /. Options[#])[[All, 1]], Style[(PlotLabel /. Options[#]), TextAlignment -> Center]], {Left, Bottom, Top},
+		(*Append[(FrameLabel /. Options[#])[[All, 1]], *)Style[(PlotLabel /. Options[#]), TextAlignment -> Center](*]*), Top(*{Left, Bottom, Top}*),
 		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
-	{streamPlotsCE, streamPlotsMultiplicativeAR, streamPlotsAdditiveAR}, {2}]
+	{streamPlotsCE, streamPlotsMultiplicativeAR, streamPlotsAdditiveAR}, {2}],
 
 	(* Finish up adding the row and column labels *)	
-	], 2],
+	{Table[Style["Retention probability (\[Phi])", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black, TextAlignment -> Center}], {i, 3}]}], 2],
 	
-	Spacings -> {2, 3}],
+	Spacings -> {1, 1}],
  
 	(* Legend *)
 		Column[{
-		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
-		PointLegend[{Black, Black}, {"Direction of selection", "Consumer extinction"}, 
+		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density\n(cells/mL)", LegendMarkerSize -> {25, 450}],
+		PointLegend[{Black, Black}, {"Direction of\nselection", "Consumer\nextinction"}, 
 			LegendMarkers -> {Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], Graphics[Rectangle[{0, 0}]]},
 			LegendMarkerSize -> {{75, 75}, {20, 20}}]}, 
 	Frame -> True, Alignment -> {Center, Center}]}, 
 Spacer[50]],
-Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset[Style["Increasing light", 20], Background -> White]}, ImageSize -> {1200, 50}]}]
+Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset[Style["Increasing light", 28], Background -> White]}, ImageSize -> {1200, 50}]}]
 
 Export["Alternate_attack_tradeoff.pdf", %]
 
@@ -760,6 +760,20 @@ ContourPlot[1 - (phi + eta)/2, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retenti
 BarLegend["GrayTones", Range[0, 1, 1/10], LegendLabel -> "Fraction of maximum\nattack rate", LabelStyle -> {Black, "Arial", 18}, LegendMarkerSize -> 300]}, Spacer[20]]
 
 Export["Attack_rate_vs_tradeoff.pdf", %]
+
+
+(* ::Section:: *)
+(*Grab the min/maximum invasion fitness for something I need later*)
+
+
+Sort[Map[1 - Exp[-2 * Norm[#]]&, Cases[Flatten[derivsForPlotsMultiplicativeAR[[All, All, 2]], 1], Except[{_String, _String}]]  * 1/10000 (* Undo the derivative *) ]]
+Histogram[%, PlotRange -> {Full, Full}]
+{Min[%%], Max[%%]}
+
+
+Sort[Map[1 - Exp[-2 * Norm[#]]&, Cases[Flatten[derivsForPlotsCE[[All, All, 2]], 1], Except[{_String, _String}]]  * 1/10000 (* Undo the derivative *) ]]
+Histogram[%, PlotRange -> {Full, Full}]
+{Min[%%], Max[%%]}
 
 
 
