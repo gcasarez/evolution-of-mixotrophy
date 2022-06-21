@@ -431,3 +431,49 @@ Do[
 
 (* Return retention and replication values over time *)
 Return[{retentionVsTime, replicationVsTime}]]
+
+
+(* ::Section:: *)
+(*Simulate evolution accounting for fixation probability*)
+
+
+(* ::Subsection:: *)
+(*Fixation probability assuming stage structure & no cycling*)
+
+
+(* Variables we need *)
+phi, c, a, w, lH, eta, gammaC (* or cHP*), pP, kappa, hP, iIn, d, lP
+(* Recall that cHP = 1/gammaC*)
+
+
+gammaC = 1;
+pP = pW * gammaP;
+iIn = 25;
+d = dMax;
+k = kappa[kW, kH, kP, 0, 0, 10, 6, 2, 0, 0];
+eta = 0.5;
+phi = 0.5;
+w = 10;
+
+
+lambdaHH = 1 + (1 - phi) * c * a * w - lH
+lambdaHP = phi * a * w
+lambdaPH = (1 - eta) * (1/gammaC) * pP / k * Log[(hP + iIn) / (hP + iIn * Exp[-1 * k])] + d
+lambdaPP = 1 + eta * (1/gammaC) * pP / k * Log[(hP + iIn) / (hP + iIn * Exp[-1 * k])] - d - lP
+
+
+uHeqn = (uH == Sum[uH^i * PDF[PoissonDistribution[lambdaHH], i] * uP^j * PDF[PoissonDistribution[lambdaHP], j],
+{i, 0, Infinity}, {j, 0, Infinity}])
+
+
+uPeqn = (uP == Sum[uH^i * PDF[PoissonDistribution[lambdaPH], i] * uP^j * PDF[PoissonDistribution[lambdaPP], j],
+{i, 0, Infinity}, {j, 0, Infinity}])
+
+
+FindRoot[{uHeqn, uPeqn}, {{uH, 0}, {uP, 0}}]
+
+
+fixationProbability[{uH_, uP_}, {h_, p_}] := h * uH + p * uP
+
+
+fixationProbability[{0.4831, 0.598548}, {6, 2}/8]
