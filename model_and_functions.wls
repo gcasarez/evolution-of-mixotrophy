@@ -85,11 +85,14 @@ Options[invasionDerivatives] = Options[simulateEvolution] =
 Join[{attackTradeOff -> False, conversionTradeOff -> False}, Options[NDSolve]];
 
 
+Options[getFixProb] = Join[{attackTradeOff -> False, conversionTradeOff -> False, uHguess -> 0, uPguess -> 0}, Options[FindRoot]];
+
+
 (* ::Section:: *)
 (*Ecological dynamics*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Function to find the resident ecological dynamics, with no mutant present*)
 
 
@@ -441,6 +444,76 @@ Return[{retentionVsTime, replicationVsTime}]]
 (*Fixation probability assuming stage structure & no cycling*)
 
 
+(* ::Subsubsection:: *)
+(*Function*)
+
+
+fixationProbability::imaginaryNumbers = "One or both of the extinction probabilities is a complex number. Fixation probability cannot be calculated.";
+fixationProbability::notProbability = "Both extinction probabilities are real numbers, but one or both is outside of the range [0, 1]. Fixation probability cannot be calculated.";
+
+
+fixationProbability[{uH_, uP_}, {h_, p_}] := 
+Module[{},
+(* Check whether uH and uP are actual extinction probabilities (real, between 0 and 1) *)
+If[Im[{uH, uP}] != {0, 0},
+	Message[fixationProbability::imaginaryNumbers];
+	Return["Unknown"]];
+	
+If[!(0 <= uH <= 1) || !(0 <= uP <= 1),
+	Message[fixationProbability::notProbability];
+	Return["Unknown"]];
+	
+(* If the extinction probabilities are real probabilities, find the expected fixation probability *)
+(* We take the expectation across the probability that a mutant arises in the heterotrophic or phototrophic state *)
+Return[h / (h + p) * (1 - uH) + p / (h + p) * (1 - uP)]]
+
+
+fixationProbability[{0.2, 0.5}, {5, 6}/11]
+
+
+getFixProb[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), 
+averagePrey_ (* W[0] *), averageHeterotroph_ (* H[0] *), averagePhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
+Module[{sigmaA, gammaC, attackRate, lightAbsorption, pP, lambdaHH, lambdaHP, lambdaPH, lambdaPP, uHeqn, uPeqn, extinctionProbs},
+
+(* Implement trade-offs *)
+sigmaA = If[OptionValue[attackTradeOff], 1, 0]; (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
+gammaC = If[OptionValue[conversionTradeOff], 0.7, 1]; (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
+
+(* Attack rate *)
+attackRate = a * (1 - sigmaA * (retention * replication));
+
+(* Phototroph's photosynthetic rate *)
+pP = gammaP * pW;
+
+(* Light absorption *)
+lightAbsorption = kappa[kW, kH, kP, kH, kP, averagePrey, averageHeterotroph, averagePhototroph, 0, 0];
+
+(* Mean number each type of "offspring" (including self) produced *)
+lambdaHH = 1 + (1 - retention) * c * attackRate * averagePrey - lH; (* heterotroph producing heterotrophic offspring *)
+lambdaHP = retention * attackRate * averagePrey; (* heterotroph producing phototrophic offspring *)
+lambdaPH = (1 - replication) * (1/gammaC) * pP / lightAbsorption * Log[(hP + surfaceLight) / (hP + surfaceLight * Exp[-1 * lightAbsorption])] + d;
+lambdaPP = 1 + replication * (1/gammaC) * pP / lightAbsorption * Log[(hP + surfaceLight) / (hP + surfaceLight * Exp[-1 * lightAbsorption])] - d - lP;
+
+(* Expression for extinction probability *)
+uHeqn = (uH == Exp[-(lambdaHH * (1 - uH) + lambdaHP * (1 - uP))]); (* Pr(a mutant heterotroph & all its descendents go extinct) *)
+uPeqn = (uP == Exp[-(lambdaPH * (1 - uH) + lambdaPP * (1 - uP))]); (* Pr(a mutant phototroph & all descendents go extinct) *)
+
+(* Solve for extinction probabilities *)
+extinctionProbs = FindRoot[{uHeqn, uPeqn}, {{uH, OptionValue[uHguess]}, {uP, OptionValue[uPguess]}}, Evaluate[FilterRules[{opts}, Options[FindRoot]]]];
+
+(* Calculate expected fixation probability *)
+Return[fixationProbability[{uH, uP} /. extinctionProbs, {averageHeterotroph, averagePhototroph}]]
+]
+
+
+getFixProb[0.5, 0.5, 25, 
+10, 6, 2, attackTradeOff -> False, conversionTradeOff -> False]
+
+
+(* ::Subsubsection:: *)
+(*Function components (outside function for checking things)*)
+
+
 (* Variables we need *)
 phi, c, a, w, lH, eta, gammaC (* or cHP*), pP, kappa, hP, iIn, d, lP
 (* Recall that cHP = 1/gammaC*)
@@ -462,6 +535,9 @@ lambdaPH = (1 - eta) * (1/gammaC) * pP / k * Log[(hP + iIn) / (hP + iIn * Exp[-1
 lambdaPP = 1 + eta * (1/gammaC) * pP / k * Log[(hP + iIn) / (hP + iIn * Exp[-1 * k])] - d - lP
 
 
+ClearAll[lambdaPP]
+
+
 uHeqn = (uH == Sum[uH^i * PDF[PoissonDistribution[lambdaHH], i] * uP^j * PDF[PoissonDistribution[lambdaHP], j],
 {i, 0, Infinity}, {j, 0, Infinity}])
 
@@ -470,10 +546,7 @@ uPeqn = (uP == Sum[uH^i * PDF[PoissonDistribution[lambdaPH], i] * uP^j * PDF[Poi
 {i, 0, Infinity}, {j, 0, Infinity}])
 
 
+Simplify[uPeqn[[2]] == Exp[-(lambdaPH * (1 - uH) + lambdaPP * (1 - uP))]]
+
+
 FindRoot[{uHeqn, uPeqn}, {{uH, 0}, {uP, 0}}]
-
-
-fixationProbability[{uH_, uP_}, {h_, p_}] := h * uH + p * uP
-
-
-fixationProbability[{0.4831, 0.598548}, {6, 2}/8]
