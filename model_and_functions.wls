@@ -1,7 +1,7 @@
 #!/usr/bin/env wolframscript
 (* ::Package:: *)
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Model equations*)
 
 
@@ -80,12 +80,13 @@ kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2
 Options[residentEcoDynamics] = Options[averageEcoState] =
 Options[minimumMixotroph] =
 Options[mutantAndResidentEcoDynamics] =
-Options[invasionDerivatives] = Options[simulateEvolution] = 
+Options[invasionDerivatives] =
 (* The options *)
 Join[{attackTradeOff -> False, conversionTradeOff -> False}, Options[NDSolve]];
 
 
-Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -> False, maxMutations -> 1000}, Options[NDSolve], Options[NMinimize]];
+Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -> False, maxMutations -> 1000, initialRetention -> 0, initialReplication -> 0}, 
+	Options[NDSolve], Options[NMinimize], Options[FindRoot]];
 Options[minimumMixotroph] = Join[Options[minimumMixotroph], Options[NMinimize]];
 
 
@@ -449,7 +450,7 @@ Return[{retentionVsTime, replicationVsTime}]]
 
 
 (* ::Subsubsection:: *)
-(*Function*)
+(*Helper functions*)
 
 
 fixationProbability::imaginaryNumbers = "One or both of the extinction probabilities is a complex number. Fixation probability cannot be calculated.";
@@ -536,30 +537,45 @@ averageAbsorption, (* average light absorption when mutant is absent (or rare) *
 mutants, (* list of possible mutants that might arise *)
 prFix, (* list of fixation probabilities of possible mutants *)
 retentionVsTime, replicationVsTime,  (* the resident's traits over time (as evolution occurs and the resident changes) *)
+timePrev, timeRes, timeEco, timeAvgPop, timeMinPop, timeFix, timeVsTime, (* troubleshooting variables, store the time at different points in the simulation *)
 maxMutationSteps = OptionValue[maxMutations]}, (* the maximum number of times we'll simulate a mutant fixing in the population *)
 
 (* Initial lists that will hold the resident's traits over time *)
 retentionVsTime = Table["NA", maxMutationSteps + 1];
- replicationVsTime = Table["NA", maxMutationSteps + 1];
+replicationVsTime = Table["NA", maxMutationSteps + 1];
 
-(* Initialize the simulation with a resident that is purely heterotrophic (rentention = replication = 0) *)
-residentRetention = residentReplication = 0;
+(* Initialize lists of times (troubleshooting *)
+timeVsTime = Table["NA", maxMutationSteps + 1];
+
+(* Initialize the simulation with the initial resident's retention and replication rates (default 0, purely heterotrophic) *)
+residentRetention = OptionValue[initialRetention];
+residentReplication = OptionValue[initialReplication];
 retentionVsTime[[1]] = residentRetention;
 replicationVsTime[[1]] = residentReplication;
+timeVsTime[[1]] = 0;
 
 (* Introduce mutants into the population and see whether they invade and become the new resident. *)
 (* Do is a for loop. We'll be looping over i = 2:1001, which comes at the very end of all this code, because Mathematica is weird about for loop syntax *)
 Do[
 	(* **** Find resident population properties before mutant invasion **** *)
+	timeRes = timePrev = SessionTime[];
 	
 	(* Find the initial resident's ecological dynamics *)
 	{residentEcology, extinction} = residentEcoDynamics[residentRetention, residentReplication, surfaceLight, 1, 1, 1, 
 		Evaluate[FilterRules[{opts}, Options[residentEcoDynamics]]]];
+		
+	(*Print["Ecological dynamics: " <> ToString[SessionTime[]]];*)
+	timeEco = SessionTime[] - timePrev;
+	timePrev = timePrev + timeEco;
 	
 	(* If extinction comes back false, check that the resident population didn't drop to <= 10^-6 (we also consider that extinction) *)
 	If[!(extinction),
 		minResident = NMinimize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 4000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]];
 		extinction = (minResident <= 10^-6)];
+		
+	(*Print["Min pop. size: " <> ToString[SessionTime[]]];*)
+	timeMinPop = SessionTime[] - timePrev;
+	timePrev = timeMinPop + timePrev;
 
 	(* If the resident cannot survive, stop! *)
 	If[extinction,
@@ -572,8 +588,16 @@ Do[
 		NIntegrate[stateVar/. residentEcology, {t, 3000, 4000}]/(4000 - 3000), 
 		{stateVar, {w[t], h[t], p[t], kappa[kW, kH, kP, kH, kP, w[t], h[t], p[t], 0, 0]}}];
 		
+	(*Print["Avg pop size: " <> ToString[SessionTime[]]];*)
+	timeAvgPop = SessionTime[] - timePrev;
+	timePrev = timePrev + timeAvgPop;
+		
 	(* Turn tiny negative numbers into 0s *)
 	{averagePrey, averageHeterotroph, averagePhototroph, averageAbsorption} = Chop[{averagePrey, averageHeterotroph, averagePhototroph, averageAbsorption}];
+	
+	(* Check for cycling (debugging) *)
+	If[minResident < 0.99 * (averageHeterotroph + averagePhototroph), 
+		Print["Cycling at (retention = " <> ToString[residentRetention] <> ", replication = " <> ToString[residentReplication] <> ")"]];
 	
 	(* **** Simulation mutant invasion **** *)
 	
@@ -586,6 +610,13 @@ Do[
 	(* Find the fixation probabilities of each mutation *)
 	prFix = Map[getFixProb[#[[1]], #[[2]], surfaceLight, averagePrey, averageHeterotroph, averagePhototroph, averageAbsorption, 
 		Evaluate[FilterRules[{opts}, Options[getFixProb]]]]&, mutants];
+		
+	(*Print["Fixation probability: " <> ToString[SessionTime[]]];*)
+	timeFix = SessionTime[] - timePrev;
+	timePrev = timePrev + timeFix;
+		
+	(* Check that prFix = Unknown is not getting into the output *)
+	If[AnyTrue[prFix, # == "Unknown"&], Print["??? "]; Print[prFix]; Break[]];
 
 	(* If all the fixation probabilities are 0, stop the simulation, the resident is locally uninvadable *)
 	If[Total[prFix] == 0,
@@ -603,68 +634,67 @@ Do[
 	
 	(* Record the new resident's trait values *)
 	retentionVsTime[[i]] = residentRetention;
-	replicationVsTime[[i]] = residentReplication, (* comma here to signal the end of the for-loop *)
+	replicationVsTime[[i]] = residentReplication;
+	
+	timeVsTime[[i]] = SessionTime[] - timeRes;
+	
+	(* Print timing info *)
+	(*Print["Resident " <> ToString[i-1] <> ", (retention = " <> ToString[residentRetention] <> 
+		", replication = " <> ToString[residentReplication] <> "): " <> ToString[N[timeVsTime[[i]]]]];
+		
+	Print["    Time eco: " <> ToString[N[timeEco]] <> ", time min pop: " <> ToString[N[timeMinPop]] <> 
+		", time avg pop: " <> ToString[N[timeAvgPop]] <> ", time fix: " <> ToString[N[timeFix]]]*)
+	, (* comma here to signal the end of the for-loop *)
 		
 	(* End of the for-loop. We write the variable to iterate over (i) and the values to iterate over, 2 to 501 (we introduce 500 mutations) *)
 	{i, 2, maxMutationSteps + 1}];
 
 (* Return retention and replication values over time *)
-Return[{retentionVsTime, replicationVsTime}]]
+Return[{retentionVsTime, replicationVsTime, timeVsTime}]]
 
 
 (* ::Subsubsection:: *)
 (*Test the function we just made*)
 
 
-AbsoluteTiming[testRun = simulateEvolution[25, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 5000];]
+testRun = Monitor[simulateEvolution[25, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 5000, initialRetention -> 0, initialReplication -> 0], i];
 
 
-ListLinePlot[Transpose[testRun]]
+Row[{Show[
+ListLinePlot[Transpose[testRun][[All, 1;;2]], Frame -> True, FrameLabel -> {"Retention", "Replication"}, AspectRatio -> 1, PlotRange -> {{0, 1}, {0, 1}},
+	LabelStyle -> {16, Black}, PlotStyle -> Directive[Thin, Gray], ImageSize -> 500],
+
+ListPlot[
+	MapThread[Style[#1, #2, PointSize[Medium]]&, {Transpose[testRun][[All, 1;;2]],
+		Table[ColorData["CandyColors"][i/(Dimensions[testRun][[2]] - 1)], {i, 0, (Dimensions[testRun][[2]] - 1)}]}]]
+],
+
+PointLegend[{ColorData["CandyColors"][0], ColorData["CandyColors"][0.25], 
+ColorData["CandyColors"][0.5], ColorData["CandyColors"][0.75],
+ColorData["CandyColors"][1]}, {"Initial population", ".", ".", ".", "Final population"}, LabelStyle -> {16, Black}]}]
+
+Export["sample_trajectory_fix_prob.png", %];
 
 
-ListLinePlot[{testRun[[1]], testRun[[2]]}]
+Column[{
+ListLinePlot[{testRun[[1]], testRun[[2]]}, PlotLegends -> {"Retention", "Replication"}, Frame -> {True, True, False, False}, 
+	PlotLabel -> "Traits vs. time",
+	FrameLabel -> {"Mutation", "Trait"}, ImageSize -> 300, LabelStyle -> {16, Black}],
+	
+ListLinePlot[testRun[[3]], PlotRange -> Full, PlotStyle -> Directive[Thin, Black],
+	PlotLabel -> "Computational time",
+	Frame -> {True, True, False, False}, FrameLabel -> {"Mutation", "Time (sec)"}, ImageSize -> 300, LabelStyle -> {16, Black}]
+}]
+
+Export["sample_time_trajectory_fix_prob.png", %]
 
 
-(* ::Subsubsection:: *)
-(*Function components (outside function for checking things)*)
+Histogram[testRun[[3]], {"Log", 50}, "Probability",
+PlotRange -> Full, Frame -> {True, True, False, False},
+PlotLabel -> "Time to simulate 1 mutant's invasion",
+FrameLabel -> {"Computational time (sec)", "Frequency"}, LabelStyle -> {16, Black}]
 
-
-(* Variables we need *)
-phi, c, a, w, lH, eta, gammaC (* or cHP*), pP, kappa, hP, iIn, d, lP
-(* Recall that cHP = 1/gammaC*)
-
-
-gammaC = 1;
-pP = pW * gammaP;
-iIn = 25;
-d = dMax;
-k = kappa[kW, kH, kP, 0, 0, 10, 6, 2, 0, 0];
-eta = 0.5;
-phi = 0.5;
-w = 10;
-
-
-lambdaHH = 1 + (1 - phi) * c * a * w - lH
-lambdaHP = phi * a * w
-lambdaPH = (1 - eta) * (1/gammaC) * pP / k * Log[(hP + iIn) / (hP + iIn * Exp[-1 * k])] + d
-lambdaPP = 1 + eta * (1/gammaC) * pP / k * Log[(hP + iIn) / (hP + iIn * Exp[-1 * k])] - d - lP
-
-
-ClearAll[lambdaPP]
-
-
-uHeqn = (uH == Sum[uH^i * PDF[PoissonDistribution[lambdaHH], i] * uP^j * PDF[PoissonDistribution[lambdaHP], j],
-{i, 0, Infinity}, {j, 0, Infinity}])
-
-
-uPeqn = (uP == Sum[uH^i * PDF[PoissonDistribution[lambdaPH], i] * uP^j * PDF[PoissonDistribution[lambdaPP], j],
-{i, 0, Infinity}, {j, 0, Infinity}])
-
-
-Simplify[uPeqn[[2]] == Exp[-(lambdaPH * (1 - uH) + lambdaPP * (1 - uP))]]
-
-
-FindRoot[{uHeqn, uPeqn}, {{uH, 0}, {uP, 0}}]
+Export["sample_time_hist_fix_prob.png", %]
 
 
 
