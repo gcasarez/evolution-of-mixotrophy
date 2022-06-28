@@ -93,7 +93,7 @@ Options[minimumMixotroph] = Join[Options[minimumMixotroph], Options[NMinimize]];
 Options[getFixProb] = Join[{attackTradeOff -> False, conversionTradeOff -> False, uHguess -> 0, uPguess -> 0}, Options[FindRoot]];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Ecological dynamics*)
 
 
@@ -176,7 +176,7 @@ Table[NIntegrate[stateVar/. ecoDynamics, {t, 3000, 4000}, Evaluate[FilterRules[{
 Return[{extinction, averagePrey, averageHeterotroph, averagePhototroph, averageMixotroph}]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to find the minimum mixotroph population size, with no mutant present*)
 
 
@@ -657,7 +657,35 @@ Return[{retentionVsTime, replicationVsTime, timeVsTime}]]
 (*Test the function we just made*)
 
 
-testRun = Monitor[simulateEvolution[25, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 5000, initialRetention -> 0, initialReplication -> 0], i];
+testRun = Monitor[simulateEvolution[25, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 1000, initialRetention -> 0, initialReplication -> 0], i];
+
+
+backMuts = Pick[MapThread[{#1, #2}&, {Transpose[testRun[[1;;2, 1;;999]]], Transpose[testRun[[1;;2, 2;;1000]]]}],
+ Table[testRun[[1;;2, i]] == testRun[[1;;2, i + 2]], {i, 1, 999}]];
+
+
+backMuts[[1]]
+
+
+testSim = mutantAndResidentEcoDynamics[0.03, 0.01, 0.04, 0.01, 25, 
+1, 1, 1,  1/100, 1/100, attackTradeOff -> True, conversionTradeOff -> True];
+testSim2 = mutantAndResidentEcoDynamics[0.04, 0.01, 0.03, 0.01, 25, 
+1, 1, 1,  1/100, 1/100, attackTradeOff -> True, conversionTradeOff -> True];
+
+
+Column[{
+Plot[{(h[t] + p[t]) /. testSim[[1]], (h2[t] + p2[t]) /. testSim[[1]]}, {t, 0, 4000}, 
+	FrameLabel -> {"Time (days)", "Pop. size"}, Frame -> {True, True, False, False}, PlotStyle -> {Purple, Blue},
+	LabelStyle -> {16, Black}, ImageSize -> 300,
+	PlotLegends -> {"Resident (\[Phi] = 0.03, \[Eta] = 0.01)", "Mutant (\[Phi] = 0.04, \[Eta] = 0.01)"}],
+	
+Plot[{(h[t] + p[t]) /. testSim2[[1]], (h2[t] + p2[t]) /. testSim2[[1]]}, {t, 0, 4000}, 
+	FrameLabel -> {"Time (days)", "Pop. size"}, Frame -> {True, True, False, False}, PlotStyle -> {Blue, Red},
+	LabelStyle -> {16, Black}, ImageSize -> 300,
+	PlotLegends -> {"Mutant/new resident (\[Phi] = 0.04, \[Eta] = 0.01)", "Back mutant (\[Phi] = 0.03, \[Eta] = 0.01)"}]
+}]
+
+Export["Mutant_and_backmutant_sample.png", %]
 
 
 Row[{Show[
@@ -673,7 +701,7 @@ PointLegend[{ColorData["CandyColors"][0], ColorData["CandyColors"][0.25],
 ColorData["CandyColors"][0.5], ColorData["CandyColors"][0.75],
 ColorData["CandyColors"][1]}, {"Initial population", ".", ".", ".", "Final population"}, LabelStyle -> {16, Black}]}]
 
-Export["sample_trajectory_fix_prob.png", %];
+(*Export["sample_trajectory_fix_prob.png", %];*)
 
 
 Column[{
