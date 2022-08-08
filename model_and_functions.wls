@@ -90,7 +90,8 @@ Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -
 Options[minimumMixotroph] = Join[Options[minimumMixotroph], Options[NMinimize]];
 
 
-Options[getFixProb] = Join[{attackTradeOff -> False, conversionTradeOff -> False, uHguess -> 0, uPguess -> 0}, Options[FindRoot]];
+Options[fixationFromMeanOffspring] = Join[{uHguess -> 0, uPguess -> 0}, Options[FindRoot]];
+Options[getFixationProbability] = Join[Options[meanOffspring], Options[fixationFromMeanOffspring]];
 
 
 (* ::Section:: *)
@@ -313,7 +314,7 @@ dMutantGrowthdReplication = Mean[derivatives] ] ];
 Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Simulate evolution*)
 
 
@@ -328,7 +329,7 @@ Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 constrainMutation = Map[Max[Min[#, 1], 0]&];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Function to simulation population evolution*)
 
 
@@ -445,43 +446,26 @@ Return[{retentionVsTime, replicationVsTime}]]
 (*Simulate evolution accounting for fixation probability*)
 
 
+(* ::Text:: *)
+(*Assume stage structure & no cycling*)
+
+
 (* ::Subsection:: *)
-(*Fixation probability assuming stage structure & no cycling*)
-
-
-(* ::Subsubsection:: *)
 (*Helper functions*)
 
 
-fixationProbability::imaginaryNumbers = "One or both of the extinction probabilities is a complex number. Fixation probability cannot be calculated.";
-fixationProbability::notProbability = "Both extinction probabilities are real numbers, but one or both is outside of the range [0, 1]. Fixation probability cannot be calculated.";
-fixationProbability::notPopSizes = "Total population is <= 0 or at least one subpopulation is negative. Fixation probability cannot be calculated.";
+(* ::Subsubsection::Closed:: *)
+(*Mean offspring*)
 
 
-fixationProbability[{uH_, uP_}, {h_, p_}] := 
-Module[{},
-(* Check whether uH and uP are actual extinction probabilities (real, between 0 and 1) *)
-If[Im[{uH, uP}] != {0, 0},
-	Message[fixationProbability::imaginaryNumbers];
-	Return["Unknown"]];
-	
-If[(uH < 0) || (uH > 1) || (uP < 0) || (uP > 1),
-	Message[fixationProbability::notProbability];
-	Return["Unknown"]];
-	
-(* Check whether h and p are real population sizes (nonnegative and sum to a positive number) *)
-If[(h < 0)|| (p < 0) || (h + p <= 0),
-	Message[fixationProbability::notPopSizes];
-	Return["Unknown"]];
-	
-(* If the extinction probabilities are real probabilities, find the expected fixation probability *)
-(* We take the expectation across the probability that a mutant arises in the heterotrophic or phototrophic state *)
-Return[h / (h + p) * Chop[(1 - uH)] + p / (h + p) * Chop[(1 - uP)]]]
+(* ::Text:: *)
+(*Function to find the mean offspring in each state (heterotrophic, phototrophic) produced by a mixotroph in each state.*)
+(*This function works for residents or mutants (use it for residents to normalize mutant reproduction).*)
 
 
-getFixProb[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), 
+meanOffspring[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), 
 averagePrey_ (* W[0] *), averageHeterotroph_ (* H[0] *), averagePhototroph_ (* P[0] *), lightAbsorption_ (* kappa *), opts:OptionsPattern[]] :=
-Module[{sigmaA, gammaC, attackRate, (*lightAbsorption,*) pP, lambdaHH, lambdaHP, lambdaPH, lambdaPP, uHeqn, uPeqn, extinctionProbs},
+Module[{sigmaA, gammaC, attackRate, d, pP, lambdaHH, lambdaPH, lambdaHP, lambdaPP},
 
 (* Implement trade-offs *)
 sigmaA = If[OptionValue[attackTradeOff], 1, 0]; (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
@@ -496,16 +480,29 @@ d = dMax * (1 - sigmaD * replication);
 (* Phototroph's photosynthetic rate *)
 pP = gammaP * pW;
 
-(* Light absorption *)
-(*lightAbsorption = kappa[kW, kH, kP, kH, kP, averagePrey, averageHeterotroph, averagePhototroph, 0, 0];*)
-
 (* Mean number each type of "offspring" (including self) produced *)
 lambdaHH = 1 + (1 - retention) * c * attackRate * averagePrey - lH; (* heterotroph producing heterotrophic offspring *)
+lambdaPH = (1 - replication) * (1/gammaC) * pP / lightAbsorption * Log[(hP + surfaceLight) / (hP + surfaceLight * Exp[-1 * lightAbsorption])] + d; (* phototroph producing heterotrophic offspring *)
 lambdaHP = retention * attackRate * averagePrey; (* heterotroph producing phototrophic offspring *)
-lambdaPH = (1 - replication) * (1/gammaC) * pP / lightAbsorption * Log[(hP + surfaceLight) / (hP + surfaceLight * Exp[-1 * lightAbsorption])] + d;
-lambdaPP = 1 + replication * (1/gammaC) * pP / lightAbsorption * Log[(hP + surfaceLight) / (hP + surfaceLight * Exp[-1 * lightAbsorption])] - d - lP;
+lambdaPP = 1 + replication * pP / lightAbsorption * Log[(hP + surfaceLight) / (hP + surfaceLight * Exp[-1 * lightAbsorption])] - d - lP; (* phototroph producing phototrophic offspring *)
 
-(* Expression for extinction probability *)
+(* Return the mean number of offspring produced, in matrix form, such that the new number of {H, P} = matrix * {H, P} *)
+(* THE ORDER IS NOT A MISTAKE!! lambdaPH belongs in the first row, lambdaHP in the second *)
+Return[{{lambdaHH, lambdaPH}, {lambdaHP, lambdaPP}}]
+]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Calculate fixation probability given mean offspring*)
+
+
+(* ::Text:: *)
+(*Function to  calculate the probability of fixation given the mean offspring produced by each state and the average resident population in each state.*)
+(*This function finds the extinction probabilities and then passes them off to fixationFromExtinctionProbability (below), which checks them and returns fixation probabilities.*)
+
+
+fixationFromMeanOffspring[{{lambdaHH_, lambdaPH_}, {lambdaHP_, lambdaPP_}}, {averageHeterotroph_, averagePhototroph_},  opts:OptionsPattern[]] :=
+Module[{uHeqn, uPeqn},
 uHeqn = (uH == Exp[-(lambdaHH * (1 - uH) + lambdaHP * (1 - uP))]); (* Pr(a mutant heterotroph & all its descendents go extinct) *)
 uPeqn = (uP == Exp[-(lambdaPH * (1 - uH) + lambdaPP * (1 - uP))]); (* Pr(a mutant phototroph & all descendents go extinct) *)
 
@@ -513,16 +510,84 @@ uPeqn = (uP == Exp[-(lambdaPH * (1 - uH) + lambdaPP * (1 - uP))]); (* Pr(a mutan
 extinctionProbs = FindRoot[{uHeqn, uPeqn}, {{uH, OptionValue[uHguess]}, {uP, OptionValue[uPguess]}}, Evaluate[FilterRules[{opts}, Options[FindRoot]]]];
 
 (* Calculate expected fixation probability *)
-Return[fixationProbability[{uH, uP} /. extinctionProbs, {averageHeterotroph, averagePhototroph}]]
+Return[fixationFromExtinctionProbability[{uH, uP} /. extinctionProbs, {averageHeterotroph, averagePhototroph}]]
 ]
 
 
-getFixProb[0.5, 0.5, 25, 
-10, 6, 2, 0.75, attackTradeOff -> False, conversionTradeOff -> False]
+(* ::Subsubsection::Closed:: *)
+(*Calculate fixation probability given extinction probabilities*)
 
 
-(* ::Subsubsection:: *)
-(*Make a function that uses the fixation probability to model evolution*)
+(* ::Text:: *)
+(*This function takes in the extinction probabilities of a single heterotroph and phototroph, as well as the likelihood they initially arise in each state, and calculates the expected probability of fixation.*)
+
+
+fixationFromExtinctionProbability::imaginaryNumbers = "One or both of the extinction probabilities is a complex number. Fixation probability cannot be calculated.";
+fixationFromExtinctionProbability::notProbability = "Both extinction probabilities are real numbers, but one or both is outside of the range [0, 1]. Fixation probability cannot be calculated.";
+fixationFromExtinctionProbability::notPopSizes = "Total population is <= 0 or at least one subpopulation is negative. Fixation probability cannot be calculated.";
+
+
+fixationFromExtinctionProbability[{uH_, uP_}, {h_, p_}] := 
+Module[{},
+(* Check whether uH and uP are actual extinction probabilities (real, between 0 and 1) *)
+If[Im[{uH, uP}] != {0, 0},
+	Message[fixationFromExtinctionProbability::imaginaryNumbers];
+	Return["Unknown"]];
+	
+If[(uH < 0) || (Chop[uH - 1] > 0) || (uP < 0) || (Chop[uP - 1] > 0),
+	Message[fixationFromExtinctionProbability::notProbability];
+	Print[{uH, uP}];
+	Return["Unknown"]];
+	
+(* Check whether h and p are real population sizes (nonnegative and sum to a positive number) *)
+If[(h < 0)|| (p < 0) || (h + p <= 0),
+	Message[fixationFromExtinctionProbability::notPopSizes];
+	Return["Unknown"]];
+	
+(* If the extinction probabilities are real probabilities, find the expected fixation probability *)
+(* We take the expectation across the probability that a mutant arises in the heterotrophic or phototrophic state *)
+Return[h / (h + p) * Chop[(1 - uH)] + p / (h + p) * Chop[(1 - uP)]]]
+
+
+(* ::Subsection::Closed:: *)
+(*Function to calculate the fixation probability of a mutant, given resident ecology*)
+
+
+(* ::Text:: *)
+(*Function to calculate the fixation probability of a mutant from start to finish. Requires environmental variables (including resident population state) and mutant traits.*)
+
+
+getFixationProbability[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), 
+averagePrey_ (* W[0] *), averageHeterotroph_ (* H[0] *), averagePhototroph_ (* P[0] *), lightAbsorption_ (* kappa *), residentGrowthRate_, opts:OptionsPattern[]] :=
+Module[{sigmaA, gammaC, attackRate, (*lightAbsorption,*) pP, offspring},
+
+(* Implement trade-offs *)
+sigmaA = If[OptionValue[attackTradeOff], 1, 0]; (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
+gammaC = If[OptionValue[conversionTradeOff], 0.7, 1]; (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
+
+(* Attack rate *)
+attackRate = a * (1 - sigmaA * (retention * replication));
+
+(* Plastid decay rate *)
+d = dMax * (1 - sigmaD * replication);
+
+(* Phototroph's photosynthetic rate *)
+pP = gammaP * pW;
+
+(* Mean number each type of "offspring" (including self) produced *)
+offspring = meanOffspring[retention, replication, surfaceLight, averagePrey, averageHeterotroph, averagePhototroph, lightAbsorption, 
+	Evaluate[FilterRules[{opts}, Options[meanOffspring]]]];
+
+(* Normalize offspring by resident growth rate *)
+offspring = offspring / residentGrowthRate;
+
+(* Calculate expected fixation probability *)
+Return[fixationFromMeanOffspring[offspring, {averageHeterotroph, averagePhototroph}, Evaluate[FilterRules[{opts}, Options[fixationFromMeanOffspring]]]]]
+]
+
+
+(* ::Subsection::Closed:: *)
+(*Function that uses the fixation probability to model evolution*)
 
 
 simulateEvolution[surfaceLight_, opts:OptionsPattern[]] :=
@@ -534,18 +599,22 @@ extinction, (* will be True if the entire resident population goes extinct *)
 minResident, (* minimum resident population size *)
 averagePrey, averageHeterotroph, averagePhototroph, (* average prey, heterotrophs, phototrophs, and light absorption when mutant is absent (or rare) *)
 averageAbsorption, (* average light absorption when mutant is absent (or rare) *)
+residentProjectionMatrix, (* matrix giving the average heterotrophs & phototrophs produced by each type of resident *)
+residentGrowthRate, (* resident population growth rate *)
 mutants, (* list of possible mutants that might arise *)
 prFix, (* list of fixation probabilities of possible mutants *)
 retentionVsTime, replicationVsTime,  (* the resident's traits over time (as evolution occurs and the resident changes) *)
 timePrev, timeRes, timeEco, timeAvgPop, timeMinPop, timeFix, timeVsTime, (* troubleshooting variables, store the time at different points in the simulation *)
+cyclingVsTime, (* "troubleshooting" variable, stores whether cycling occurred *)
 maxMutationSteps = OptionValue[maxMutations]}, (* the maximum number of times we'll simulate a mutant fixing in the population *)
 
 (* Initial lists that will hold the resident's traits over time *)
 retentionVsTime = Table["NA", maxMutationSteps + 1];
 replicationVsTime = Table["NA", maxMutationSteps + 1];
 
-(* Initialize lists of times (troubleshooting *)
+(* Initialize list of runtimes and list of whether cycling occurred (troubleshooting *)
 timeVsTime = Table["NA", maxMutationSteps + 1];
+cyclingVsTime = Table["NA", maxMutationSteps + 1];
 
 (* Initialize the simulation with the initial resident's retention and replication rates (default 0, purely heterotrophic) *)
 residentRetention = OptionValue[initialRetention];
@@ -587,7 +656,10 @@ Do[
 	{averagePrey, averageHeterotroph, averagePhototroph, averageAbsorption} = Table[
 		NIntegrate[stateVar/. residentEcology, {t, 3000, 4000}]/(4000 - 3000), 
 		{stateVar, {w[t], h[t], p[t], kappa[kW, kH, kP, kH, kP, w[t], h[t], p[t], 0, 0]}}];
-		
+	
+	(* Just for now -- debugging *)
+	(* averageAbsorption = kappa[kW, kH, kP, kH, kP, averagePrey, averageHeterotroph, averagePhototroph, 0, 0]; *)
+	
 	(*Print["Avg pop size: " <> ToString[SessionTime[]]];*)
 	timeAvgPop = SessionTime[] - timePrev;
 	timePrev = timePrev + timeAvgPop;
@@ -597,7 +669,14 @@ Do[
 	
 	(* Check for cycling (debugging) *)
 	If[minResident < 0.99 * (averageHeterotroph + averagePhototroph), 
-		Print["Cycling at (retention = " <> ToString[residentRetention] <> ", replication = " <> ToString[residentReplication] <> ")"]];
+		cyclingVsTime[[i - 1]] = True
+		(*Print["Cycling at (retention = " <> ToString[residentRetention] <> ", replication = " <> ToString[residentReplication] <> ")"]*),
+		cyclingVsTime[[i - 1]] = False];
+	
+	(* Get the population growth rate to normalize the mutant rates by (approximation, assumes constant pop. size and poisson-distributed number of offspring) *)
+	residentProjectionMatrix = meanOffspring[residentRetention, residentReplication, surfaceLight, 
+		averagePrey, averageHeterotroph, averagePhototroph, averageAbsorption, Evaluate[FilterRules[{opts}, Options[meanOffspring]]]];
+	residentGrowthRate = Eigenvalues[residentProjectionMatrix, 1][[1]];
 	
 	(* **** Simulation mutant invasion **** *)
 	
@@ -608,8 +687,8 @@ Do[
 	mutants = Select[mutants, (0 <= #[[1]] <= 1) && (0 <= #[[2]] <= 1)&];
 
 	(* Find the fixation probabilities of each mutation *)
-	prFix = Map[getFixProb[#[[1]], #[[2]], surfaceLight, averagePrey, averageHeterotroph, averagePhototroph, averageAbsorption, 
-		Evaluate[FilterRules[{opts}, Options[getFixProb]]]]&, mutants];
+	prFix = Map[getFixationProbability[#[[1]], #[[2]], surfaceLight, averagePrey, averageHeterotroph, averagePhototroph, averageAbsorption, residentGrowthRate,
+		Evaluate[FilterRules[{opts}, Options[getFixationProbability]]]]&, mutants];
 		
 	(*Print["Fixation probability: " <> ToString[SessionTime[]]];*)
 	timeFix = SessionTime[] - timePrev;
@@ -620,11 +699,14 @@ Do[
 
 	(* If all the fixation probabilities are 0, stop the simulation, the resident is locally uninvadable *)
 	If[Total[prFix] == 0,
-		Print["Resident (" <> ToString[residentRetention] <> ", " ToString[residentReplication] <> ") is locally uninvadable"];
+		Print[prFix];
+		Print["Resident is locally uninvadable"];
+		Print[residentRetention];
+		Print[residentReplication];
 	
 		(* Fill the last entries of the simulation with the uninvadable resident *)
-		retentionVsTime[[i;;1001]] = Table[residentRetention, {j, i, maxMutationSteps}];
-		replicationVsTime[[i;;1001]] = Table[residentReplication, {j, i, maxMutationSteps}];
+		retentionVsTime[[i;;maxMutationSteps + 1]] = residentRetention;
+		replicationVsTime[[i;;maxMutationSteps + 1]] = residentReplication;
 	
 		(* End the simulation (get out of the for loop *)
 		Break[]];
@@ -650,18 +732,27 @@ Do[
 	{i, 2, maxMutationSteps + 1}];
 
 (* Return retention and replication values over time *)
-Return[{retentionVsTime, replicationVsTime, timeVsTime}]]
+Return[{retentionVsTime, replicationVsTime, timeVsTime, cyclingVsTime}]]
 
 
-(* ::Subsubsection:: *)
-(*Test the function we just made*)
+(* ::Subsection::Closed:: *)
+(*Test the function that simulates evolution*)
 
 
-testRun = Monitor[simulateEvolution[25, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 1000, initialRetention -> 0, initialReplication -> 0], i];
+testRun = Monitor[simulateEvolution[50, attackTradeOff -> False, conversionTradeOff -> True, maxMutations -> 500, initialRetention -> 0, initialReplication -> 0.1], i];
 
 
-backMuts = Pick[MapThread[{#1, #2}&, {Transpose[testRun[[1;;2, 1;;999]]], Transpose[testRun[[1;;2, 2;;1000]]]}],
- Table[testRun[[1;;2, i]] == testRun[[1;;2, i + 2]], {i, 1, 999}]];
+varyReplication = Monitor[Table[
+	{eta, simulateEvolution[50, attackTradeOff -> False, conversionTradeOff -> True, maxMutations -> 500, initialRetention -> 0, initialReplication -> eta]}, 
+	{eta, 0, 1, 1/10}], eta];
+	
+
+
+testRun[[1]]
+
+
+backMuts = Pick[MapThread[{#1, #2}&, {Transpose[testRun[[1;;2, 1;;499]]], Transpose[testRun[[1;;2, 2;;500]]]}],
+ Table[testRun[[1;;2, i]] == testRun[[1;;2, i + 2]], {i, 1, 499}]];
 
 
 backMuts[[1]]
@@ -685,7 +776,13 @@ Plot[{(h[t] + p[t]) /. testSim2[[1]], (h2[t] + p2[t]) /. testSim2[[1]]}, {t, 0, 
 	PlotLegends -> {"Mutant/new resident (\[Phi] = 0.04, \[Eta] = 0.01)", "Back mutant (\[Phi] = 0.03, \[Eta] = 0.01)"}]
 }]
 
-Export["Mutant_and_backmutant_sample.png", %]
+(*Export["Mutant_and_backmutant_sample.png", %]*)
+
+
+Plot[Log[(h2[t] + p2[t])] /. testSim2[[1]], {t, 0, 4000}]
+
+
+Plot[Log[(h[t] + p[t])] /. testSim[[1]], {t, 0, 4000}]
 
 
 Row[{Show[
@@ -704,6 +801,9 @@ ColorData["CandyColors"][1]}, {"Initial population", ".", ".", ".", "Final popul
 (*Export["sample_trajectory_fix_prob.png", %];*)
 
 
+testRun[[4]]
+
+
 Column[{
 ListLinePlot[{testRun[[1]], testRun[[2]]}, PlotLegends -> {"Retention", "Replication"}, Frame -> {True, True, False, False}, 
 	PlotLabel -> "Traits vs. time",
@@ -714,7 +814,7 @@ ListLinePlot[testRun[[3]], PlotRange -> Full, PlotStyle -> Directive[Thin, Black
 	Frame -> {True, True, False, False}, FrameLabel -> {"Mutation", "Time (sec)"}, ImageSize -> 300, LabelStyle -> {16, Black}]
 }]
 
-Export["sample_time_trajectory_fix_prob.png", %]
+(*Export["sample_time_trajectory_fix_prob.png", %]*)
 
 
 Histogram[testRun[[3]], {"Log", 50}, "Probability",
@@ -725,4 +825,140 @@ FrameLabel -> {"Computational time (sec)", "Frequency"}, LabelStyle -> {16, Blac
 Export["sample_time_hist_fix_prob.png", %]
 
 
+
+
+
+Table[ListLinePlot[{varyReplication[[i, 2, 1]], varyReplication[[i, 2, 2]]}, PlotLegends -> {"Retention", "Replication"}, Frame -> {True, True, False, False}, 
+	PlotLabel -> "Initial replication = " <> ToString[N[varyReplication[[i, 1]]]],
+	FrameLabel -> {"Mutation", "Trait"}, ImageSize -> 300, LabelStyle -> {16, Black}], {i, Length[varyReplication]}]
+
+
+Table[ListLinePlot[Transpose[varyReplication[[i, 2, 1;;2]]], Frame -> {True, True, False, False}, 
+	PlotLabel -> "Initial replication = " <> ToString[N[varyReplication[[i, 1]]]], PlotRange -> {{0, 1}, {0, 1}},
+	FrameLabel -> {"Retention", "Replication"}, ImageSize -> 300, LabelStyle -> {16, Black}], {i, Length[varyReplication]}]
+
+
+(* ::Subsection::Closed:: *)
+(*Simulation ecological dynamics to check mutant fixation*)
+
+
+(* ::Text:: *)
+(*No attack trade-off, retention = 1, replication = 0.1, light = 50*)
+(*Introduce mutants with slightly higher and lower replication probabilities*)
+
+
+(* ::Subsubsection:: *)
+(*Quick function to find ecological dynamics *)
+
+
+Options[longEcoDynamics] =
+Join[{attackTradeOff -> False, conversionTradeOff -> False}, Options[NDSolve]];
+
+
+longEcoDynamics[residentRetention_ (* phi *), residentReplication_ (* eta *), mutantRetention_ (* phi2 *), mutantReplication_ (* eta2 *), surfaceLight_ (* iIn *), 
+initialPrey_ (* W[0] *), initialResidentHeterotroph_ (* H[0] *), initialResidentPhototroph_ (* P[0] *),  
+initialMutantHeterotroph_ (* H2[0] *), initialMutantPhototroph_ (* P2[0] *), 
+time_ (* days to simulate dynamics over *), opts:OptionsPattern[]] :=
+
+(* Set up a module to hold some temporary parameter values *)
+Module[{
+(* This variable will hold the solution to the differential equations describing the ecological dynamics *)
+ecoDynamics,
+
+(* Match input with the parameters used in equations *)
+phi = residentRetention, eta = residentReplication, 
+phi2 = mutantRetention, eta2 = mutantReplication,
+iIn = surfaceLight, 
+
+(* Implement trade-offs *)
+sigmaA = If[OptionValue[attackTradeOff], 1, 0], (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
+gammaC = If[OptionValue[conversionTradeOff], 0.7, 1], (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
+
+(* Set up a variable that will become true if both the resident and mutant mixotroph populations cannot persist *)
+extinction = False},
+
+(* Quick check to make sure we're not starting with the resident and mutant extinct *)
+If[(initialResidentHeterotroph == 0) && (initialResidentPhototroph == 0) && (initialMutantHeterotroph == 0) && (initialMutantPhototroph == 0),
+extinction = True];
+
+(* Now onto the equation solving!*)
+ecoDynamics = NDSolve[
+	{w'[t] == wDot[w[t], hW, lW, a, pW, kappa[kW, kH, kP, kH2, kP2, w[t], h[t], p[t], h2[t], p2[t]], iIn, gammaA, eta, phi, eta2, phi2, sigmaA, p[t], h[t], a2, h2[t], p2[t]],
+	h'[t] == hDot[eta, c, gammaC, kappa[kW, kH, kP, kH2, kP2 ,w[t], h[t], p[t], h2[t], p2[t]], gammaP, pW, sigmaP, p[t], hP, iIn, phi, a, w[t], h[t], gammaA, sigmaA, lH, dMax, sigmaD],
+	p'[t] == pDot[eta, gammaP, sigmaP, pW, p[t], kappa[kW, kH, kP, kH2, kP2, w[t], h[t], p[t], h2[t], p2[t]], hP, iIn, phi, a, w[t], h[t], gammaA, sigmaA, gammaC, sigmaC, c, dMax, sigmaD, lP],
+	h2'[t] == h2Dot[eta2, c, gammaC, gammaP, sigmaP, pW, p2[t], kappa[kW, kH, kP, kH2, kP2, w[t], h[t], p[t], h2[t], p2[t]], hP2, iIn, phi2, a2, w[t], h2[t], gammaA, sigmaA, lH2, dMax, sigmaD],
+	p2'[t] == p2Dot[eta2, gammaP, sigmaP, pW, p2[t], kappa[kW, kH, kP, kH2, kP2, w[t], h[t], p[t], h2[t], p2[t]], hP2, iIn, phi2, a2, w[t], h2[t], gammaA, sigmaA, c, gammaC, sigmaC, dMax, sigmaD, lP2],
+	
+	(* Initial conditions for the prey, heterotroph, and phototroph population sizes *)
+	w[0] == initialPrey, h[0] == initialResidentHeterotroph, p[0] == initialResidentPhototroph, h2[0] == initialMutantHeterotroph, p2[0] == initialMutantPhototroph,
+	
+	(* If the entire mixotroph population goes to 0, stop solving the differential equations and set the variable "extinction" to true *)
+	WhenEvent[((h[t] <= 10^-6) && (p[t] <= 10^-6)) && ((h2[t] <= 10^-6) && (p2[t] <= 10^-6)), extinction = True; "StopIntegration"],
+	
+	(* If any single population goes below 0, set it to 0. This is just to be safe; technically the equations shouldn't allow this, but sometimes small dips below 0 happen when solving numerically *)
+	WhenEvent[w[t] < 0, w[t] -> 0], WhenEvent[h[t] < 0, h[t] -> 0], WhenEvent[p[t] < 0, p[t] -> 0], WhenEvent[h2[t] < 0, h2[t] -> 0], WhenEvent[p2[t] < 0, p2[t] -> 0]},
+	
+	(* Find the population sizes over time *)
+	{w, h, p, h2, p2}, {t, 0, time},
+	
+	(* Optional input to adjust the differential equation solver *)
+	FilterRules[{opts}, Options[NDSolve]]]; 
+	
+(* Clean up the formatting of ecoDynamics *)
+ecoDynamics = Flatten[ecoDynamics, 1];
+
+(* Check that extinction did not occur on the last time step *)
+If[extinction == False,
+ extinction = ((h[time] <= 10^-6) && (p[time] <= 10^-6) && (h2[time] <= 10^-6) && (p2[time] <= 10^-6)) /. ecoDynamics];
+
+(* Return the ecological dynamics and whether extinction occured *)
+Return[{ecoDynamics, extinction}]]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Mutant with slightly higher replication probability*)
+
+
+ecoEx1 = longEcoDynamics[1, 1/10, 1, 1/10 + 1/100, 50, (* traits and light *)
+4, 99/100, 99/100, 1/100, 1/100, (* initial population sizes *)
+50000 (* days to simulate dynamics over *), conversionTradeOff -> True, attackTradeOff -> False];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Mutant with slightly lower replication probability*)
+
+
+ecoEx2 = longEcoDynamics[1, 1/10, 1, 1/10 - 1/100, 50, (* traits and light *)
+4, 99/100, 99/100, 1/100, 1/100, (* initial population sizes *)
+50000 (* days to simulate dynamics over *), conversionTradeOff -> True, attackTradeOff -> False];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Plot ecological dynamics*)
+
+
+plotEx1 = Plot[{(h2[t] + p2[t]) / (h[t] + p[t] + h2[t] + p2[t]) /. ecoEx1[[1]]},
+{t, 0, 50000},
+PlotRange -> {{0, 50000}, {0, 1}},
+Frame -> {True, True, False, False},
+FrameLabel -> {"Time (days)", "Mutant fraction of population"},
+PlotLabel -> "Mutant with higher replication (0.11)",
+LabelStyle -> {"Arial", Black, 14}];
+
+
+plotEx2 = Plot[{(h2[t] + p2[t]) / (h[t] + p[t] + h2[t] + p2[t]) /. ecoEx2[[1]]},
+{t, 0, 50000},
+PlotRange -> {{0, 50000}, {0, 0.05}},
+Frame -> {True, True, False, False},
+FrameLabel -> {"Time (days)", "Mutant fraction of population"},
+PlotLabel -> "Mutant with lower replication (0.09)",
+LabelStyle -> {"Arial", Black, 14}, PlotStyle -> Orange];
+
+
+Labeled[GraphicsRow[{plotEx2, plotEx1}, ImageSize -> 800],
+{Style["Mutant dynamics with resident retention = 1, replication = 0.1", FontFamily -> "Arial", FontColor -> Black, FontSize -> 18],
+Style["Matches streamplot predictions that higher replication is more fit.\nNo attack tradeoff, light = 50 \[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s.", 
+	Italic, FontFamily -> "Arial", FontColor -> Black, FontSize -> 16]},
+{Top, Bottom}]
+Export["mutant_fixation_retention_1_replication_0.1.pdf", %]
 
