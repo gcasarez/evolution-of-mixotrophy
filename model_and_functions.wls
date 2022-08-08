@@ -85,11 +85,32 @@ Options[invasionDerivatives] =
 Join[{attackTradeOff -> False, conversionTradeOff -> False}, Options[NDSolve]];
 
 
+(* ::Text:: *)
+(*For the functions that directly simulate ecological dynamics (residentEcoDynamics and mutantAndResidentEcoDynamics), there is an extra option:*)
+
+
+(* ::Item:: *)
+(*Maximum time to simulate ecological dynamics (option maxTime): 4000 days.*)
+
+
+(* ::Text:: *)
+(*Note that every function that calls either of residentEcoDynamics or mutantAndResidentEcoDynamics uses a maxTime of 4000. The one exception is the function simulateEvolution, which calls residentEcoDynamics with a max time of 8000 days, due to needing to allow the resident to equilibrate before introducing the mutant.*)
+
+
+Options[residentEcoDynamics] = Join[Options[residentEcoDynamics], {maxTime -> 4000}];
+Options[mutantAndResidentEcoDynamics] = Join[Options[mutantAndResidentEcoDynamics], {maxTime -> 4000}];
+
+
+(* ::Text:: *)
+(*Options for function to simulate evolution*)
+
+
 Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -> False, maxMutations -> 1000, initialRetention -> 0, initialReplication -> 0}, 
-	Options[NDSolve], Options[NMinimize], Options[FindRoot]];
+	Options[NDSolve], Options[NMinimize], Options[NMaximize], Options[FindRoot]];
 Options[minimumMixotroph] = Join[Options[minimumMixotroph], Options[NMinimize]];
 
 
+Options[meanOffspring] = {attackTradeOff -> False, conversionTradeOff -> False};
 Options[fixationFromMeanOffspring] = Join[{uHguess -> 0, uPguess -> 0}, Options[FindRoot]];
 Options[getFixationProbability] = Join[Options[meanOffspring], Options[fixationFromMeanOffspring]];
 
@@ -116,6 +137,9 @@ phi = retention, eta = replication, iIn = surfaceLight,
 sigmaA = If[OptionValue[attackTradeOff], 1, 0], (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
 gammaC = If[OptionValue[conversionTradeOff], 0.7, 1], (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
 
+(* Get the time to simulate ecological dynamics for *)
+tmax = OptionValue[maxTime],
+
 (* Set up a variable that will become true if the mixotroph population cannot persist *)
 extinction = False},
 
@@ -134,8 +158,8 @@ ecoDynamics = NDSolve[
 	(* If any single population goes below 0, set it to 0. This is just to be safe; technically the equations shouldn't allow this, but sometimes small dips below 0 happen when solving numerically *)
 	WhenEvent[w[t] < 0, w[t] -> 0], WhenEvent[h[t] < 0, h[t] -> 0], WhenEvent[p[t] < 0, p[t] -> 0]},
 	
-	(* Find the population sizes over 4000 days *)
-	{w, h, p}, {t, 0, 4000},
+	(* Find the population sizes over tmax days *)
+	{w, h, p}, {t, 0, tmax},
 	
 	(* Optional input to adjust the differential equation solver *)
 	FilterRules[{opts}, Options[NDSolve]]]; 
@@ -145,7 +169,7 @@ ecoDynamics = Flatten[ecoDynamics, 1];
 
 (* Check that extinction did not occur on the last time step *)
 If[extinction == False,
- extinction = ((h[4000] <= 10^-6) && (p[4000] <= 10^-6)) /. ecoDynamics];
+ extinction = ((h[tmax] <= 10^-6) && (p[tmax] <= 10^-6)) /. ecoDynamics];
 
 (* Return the ecological dynamics and whether extinction occured *)
 Return[{ecoDynamics, extinction}]]
@@ -222,6 +246,9 @@ iIn = surfaceLight,
 sigmaA = If[OptionValue[attackTradeOff], 1, 0], (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
 gammaC = If[OptionValue[conversionTradeOff], 0.7, 1], (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
 
+(* Get the time to simulate ecological dynamics for *)
+tmax = OptionValue[maxTime],
+
 (* Set up a variable that will become true if both the resident and mutant mixotroph populations cannot persist *)
 extinction = False},
 
@@ -246,8 +273,8 @@ ecoDynamics = NDSolve[
 	(* If any single population goes below 0, set it to 0. This is just to be safe; technically the equations shouldn't allow this, but sometimes small dips below 0 happen when solving numerically *)
 	WhenEvent[w[t] < 0, w[t] -> 0], WhenEvent[h[t] < 0, h[t] -> 0], WhenEvent[p[t] < 0, p[t] -> 0], WhenEvent[h2[t] < 0, h2[t] -> 0], WhenEvent[p2[t] < 0, p2[t] -> 0]},
 	
-	(* Find the population sizes over 4000 days *)
-	{w, h, p, h2, p2}, {t, 0, 4000},
+	(* Find the population sizes over tmax days *)
+	{w, h, p, h2, p2}, {t, 0, tmax},
 	
 	(* Optional input to adjust the differential equation solver *)
 	FilterRules[{opts}, Options[NDSolve]]]; 
@@ -257,7 +284,7 @@ ecoDynamics = Flatten[ecoDynamics, 1];
 
 (* Check that extinction did not occur on the last time step *)
 If[extinction == False,
- extinction = ((h[4000] <= 10^-6) && (p[4000] <= 10^-6) && (h2[4000] <= 10^-6) && (p2[4000] <= 10^-6)) /. ecoDynamics];
+ extinction = ((h[tmax] <= 10^-6) && (p[tmax] <= 10^-6) && (h2[tmax] <= 10^-6) && (p2[tmax] <= 10^-6)) /. ecoDynamics];
 
 (* Return the ecological dynamics and whether extinction occured *)
 Return[{ecoDynamics, extinction}]]
