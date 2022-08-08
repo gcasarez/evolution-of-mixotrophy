@@ -127,6 +127,22 @@ Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlots
 {i, Length[derivsForPlotsCEAR]}]
 
 
+Table[
+Show[ListVectorPlot[derivsForPlotsCEAR[[i, All, 1;;2]], 
+	VectorPoints -> noExtinctionPointsCEAR[[i, All, 2;;3]],
+	ColorFunction -> "Pastel", VectorStyle -> Black, 
+	PlotLegends -> Placed[BarLegend[Automatic, LegendLayout -> "Row", LegendLabel -> "Magnitude of selection gradient", LegendMarkerSize -> {250, 20}], Below],
+	FrameLabel -> {"Retention Probability (\[Phi])", If[i == 1, "Replication Probability (\[Eta])", ""]},
+	PlotLabel -> Style["Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", 14], 
+	ImageSize -> 250, VectorScale -> {Automatic, Automatic, None},
+	LabelStyle -> {14, Black, "Arial"}], 
+	
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCEAR[[i, All, 2;;3]]]]],
+{i, Length[derivsForPlotsCEAR]}] // Row
+
+Export["selection_gradient_cear.pdf", %]
+
+
 (* ::Subsubsection:: *)
 (*Now we'll make some stream plots.*)
 
@@ -201,10 +217,26 @@ Table[
 Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlotsCE[[i]]], 
 	VectorPoints -> noExtinctionPointsCE[[i, All, 2;;3]],
 	ColorFunction -> "Pastel", VectorStyle -> Black, PlotLegends -> Automatic, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> "Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium, VectorScale -> {Automatic, Automatic, None}], 
+	PlotLabel -> "Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium, VectorScale -> {Automatic, Automatic, Automatic}], 
 	
 	Graphics[Map[Rectangle[{Max[#[[1]] - 1/20, 0], Max[#[[2]] - 1/20, 0]}, {Min[#[[1]] + 1/20, 1], Min[#[[2]] + 1/20, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]],
 {i, Length[derivsForPlotsCE]}]
+
+
+Table[
+Show[ListVectorPlot[derivsForPlotsCE[[i, All, 1;;2]], 
+	VectorPoints -> noExtinctionPointsCE[[i, All, 2;;3]],
+	ColorFunction -> "Pastel", VectorStyle -> Black, 
+	PlotLegends -> Placed[BarLegend[Automatic, LegendLayout -> "Row", LegendLabel -> "Magnitude of selection gradient", LegendMarkerSize -> {200, 15}], Below],
+	FrameLabel -> {"Retention Probability (\[Phi])", If[i == 1, "Replication Probability (\[Eta])", ""]},
+	PlotLabel -> Style["Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", 13],
+	ImageSize -> 250, VectorScale -> {Automatic, Automatic, None},
+	LabelStyle -> {13, Black, "Arial"}], 
+	
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]],
+{i, Length[derivsForPlotsCE]}] // Row
+
+Export["selection_gradient_ce.pdf", %]
 
 
 (* ::Subsubsection:: *)
