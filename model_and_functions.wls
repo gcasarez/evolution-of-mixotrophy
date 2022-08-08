@@ -989,3 +989,547 @@ Style["Matches streamplot predictions that higher replication is more fit.\nNo a
 {Top, Bottom}]
 Export["mutant_fixation_retention_1_replication_0.1.pdf", %]
 
+
+
+
+
+(* ::Section:: *)
+(*Function that simulates mutant growth unaffected by resident*)
+
+
+(* ::Subsubsection:: *)
+(*Function to find rare mutant dynamics*)
+
+
+Options[rareMutantEcoDynamics] =
+Join[{attackTradeOff -> False, conversionTradeOff -> False}, Options[NDSolve]];
+
+
+(* ::Text:: *)
+(*Recommend setting initialMutantHeterotroph and initialMutantPhototroph to the resident's values for best computational accuracy. (Technically this should work as long these are in the same proportions, or even if they aren't and there is enough burn-in. In practice, using the exact same numbers helps with precision of calculations.)*)
+
+
+rareMutantEcoDynamics[preyEcology_, heterotrophEcology_, phototrophEcology_, mutantRetention_ (* phi2 *), mutantReplication_ (* eta2 *), surfaceLight_ (* iIn *), 
+initialMutantHeterotroph_, initialMutantPhototroph_, tmin_, tmax_ (* time to end simulation*), opts:OptionsPattern[]] :=
+
+(* Set up a module to hold some temporary parameter values *)
+Module[{
+(* This variable will hold the solution to the differential equations describing the mutant ecological dynamics *)
+mutantEcoDynamics,
+
+(* Match input with the parameters used in equations *)
+phi2 = mutantRetention, eta2 = mutantReplication,
+iIn = surfaceLight, 
+
+(* Implement trade-offs *)
+sigmaA = If[OptionValue[attackTradeOff], 1, 0], (* 1 for attack rate trade-off, 0 for no attack rate trade-off *)
+gammaC = If[OptionValue[conversionTradeOff], 0.7, 1], (* 0.7 for conversion efficiency trade-off, 1 for no conversion efficiency trade-off *)
+
+(* Set up a variable that will become true if both the resident and mutant mixotroph populations cannot persist *)
+extinction = False},
+
+(* Quick check to make sure we're not starting with the resident extinct *)
+If[(heterotrophEcology[0] == 0) && (phototrophEcology[0] == 0),
+Print["Resident appears to be extinct?"];
+extinction = True];
+
+(* Now onto the equation solving!*)
+mutantEcoDynamics = NDSolve[
+	{h2'[t] == h2Dot[eta2, c, gammaC, gammaP, sigmaP, pW, p2[t], 
+		kappa[kW, kH, kP, 0, 0, preyEcology[t], heterotrophEcology[t], phototrophEcology[t], 0, 0], 
+		hP2, iIn, phi2, a2, preyEcology[t], h2[t], gammaA, sigmaA, lH2, dMax, sigmaD],
+	p2'[t] == p2Dot[eta2, gammaP, sigmaP, pW, p2[t], 
+		kappa[kW, kH, kP, 0, 0, preyEcology[t], heterotrophEcology[t], phototrophEcology[t], 0, 0], 
+		hP2, iIn, phi2, a2, preyEcology[t], h2[t], gammaA, sigmaA, c, gammaC, sigmaC, dMax, sigmaD, lP2],
+	
+	(* Initial conditions for the prey, heterotroph, and phototroph population sizes *)
+	h2[tmin] == initialMutantHeterotroph, p2[tmin] == initialMutantPhototroph,
+	
+	(* If the entire mixotroph population goes to 0, stop solving the differential equations and set the variable "extinction" to true *)
+	WhenEvent[((h2[t] <= 10^-6) && (p2[t] <= 10^-6)), extinction = True; "StopIntegration"],
+	
+	(* If any single population goes below 0, set it to 0. This is just to be safe; technically the equations shouldn't allow this, but sometimes small dips below 0 happen when solving numerically *)
+	WhenEvent[h2[t] < 0, h2[t] -> 0], WhenEvent[p2[t] < 0, p2[t] -> 0]},
+	
+	(* Find the mutant population sizes over time (relative to the initial mutant population) *)
+	{h2, p2}, {t, tmin, tmax},
+	
+	(* Optional input to adjust the differential equation solver *)
+	FilterRules[{opts}, Options[NDSolve]]]; 
+	
+(* Clean up the formatting of ecoDynamics *)
+mutantEcoDynamics = Flatten[mutantEcoDynamics, 1];
+
+(* Check that extinction did not occur on the last time step *)
+If[extinction == False,
+ extinction = ((h2[tmax] <= 0) && (p2[tmax] <= 0)) /. mutantEcoDynamics];
+
+(* Return the ecological dynamics and whether extinction occured *)
+Return[{mutantEcoDynamics, extinction}]]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Function to estimate the period of cycling (when it occurs)*)
+
+
+Needs["DifferentialEquations`InterpolatingFunctionAnatomy`"];
+
+
+(* ::Text:: *)
+(*So I want to be able to take some ecological dynamics and identify cycles*)
+
+
+interpolatingFunctionPeriod::DomainError = "Domain is not 1-dimensional.";
+interpolatingFunctionPeriod::NotPeriodic = "Peaks detected: `1`. Check that function is periodic and include a larger domain if so.";
+interpolatingFunctionPeriod::FewPeaks = "Cannot discard first 3 estimates of period, because only `1` estimates can be obtained.";
+
+
+interpolatingFunctionPeriod[ifun_, ignoreEarlyPeaks_:True] :=
+	Module[{peakLocations, peakSeparation}, 
+	
+	(* Check that the interpolating function domain is 1-dimensional *)
+	If[Dimensions[InterpolatingFunctionDomain[ifun]] != {1, 2},
+		Message[interpolatingFunctionPeriod::DomainError];
+		Return[]];
+		
+	(* Find the locations of the peaks of the interpolating function *)
+	peakLocations = Pick[Flatten[InterpolatingFunctionGrid[ifun]], PeakDetect[InterpolatingFunctionValuesOnGrid[ifun]], 1];
+	
+	(* Check that there are at least 2 peaks (so we know we've captured a full period) *)
+	If[Length[peakLocations] <= 1,
+		Message[interpolatingFunctionPeriod::NotPeriodic, Length[peakLocations]];
+		Return[0]];
+	
+	(* Find the distance between each peak and the next *)
+	peakSeparation = Differences[peakLocations];
+	
+	(* If ignoreEarlyPeaks is true, and we have enough peaks, we'll throw out the first 3 peaks *)
+	If[ignoreEarlyPeaks,
+		If[Length[peakSeparation] >= 4,
+			peakSeparation = peakSeparation[[4;;All]],
+			Message[interpolatingFunctionPeriod::FewPeaks, Length[peakSeparation]]
+		]
+	];
+	
+	(* Return estimate of period *)
+	Return[Median[peakSeparation]]]
+
+
+(* ::Subsubsection:: *)
+(*Tests of a case that wasn't working well previously*)
+
+
+(* ::Text:: *)
+(*Resident ecological dynamics*)
+
+
+ecoEx4 = longEcoDynamics[1, 1/10, 1, 1/10, 50, 
+4, 1, 1, 0, 0,
+8000, attackTradeOff -> False, conversionTradeOff -> True];
+
+
+(* ::Text:: *)
+(*Period of cyclical dynamics*)
+
+
+estPeriod = interpolatingFunctionPeriod[(w /. ecoEx4[[1]])];
+
+
+
+(* ::Text:: *)
+(*Time to start simulating mutant dynamics*)
+
+
+tmin = 4000;
+
+
+(* ::Text:: *)
+(*Check that the resident is neutral (s = 0) at resident equilibrium*)
+
+
+((h[8000] + p[8000]) / (h[8000 - estPeriod] + p[8000 - estPeriod]) /. ecoEx4[[1]]) - 1
+
+
+(* ::Text:: *)
+(*Check that if we introduce a mutant with the same traits as the resident, it is also neutral at equilibrium*)
+
+
+mutDynamics4 = rareMutantEcoDynamics[(w /. ecoEx4[[1]]),  (h /. ecoEx4[[1]]), (p /. ecoEx4[[1]]), 1, 1/10, 50, 
+(*(h[tmin]/(h[tmin] + p[tmin]) /. ecoEx4[[1]])*) (h[tmin] /. ecoEx4[[1]]), (p[tmin] /. ecoEx4[[1]]),
+tmin, 8000, conversionTradeOff -> True, attackTradeOff -> False];
+
+
+Plot[(h2[t] /. mutDynamics4[[1]]) / (h[t] /. ecoEx4[[1]]), {t, 4000, 8000}, PlotRange -> Full]
+
+
+s4 = (((h2[8000] + p2[8000]) / (h2[8000 - estPeriod] + p2[8000 - estPeriod])) /. mutDynamics4[[1]]) - 1
+
+
+((h[8000] + p[8000]) / (h[8000 - estPeriod] + p[8000 - estPeriod]) /. ecoEx4[[1]]) - 1
+
+
+Max[1 - Exp[-2 * s4], 0]
+
+
+Plot[{(h[t] /. ecoEx4[[1]]), (h2[t] /. mutDynamics4[[1]])}, {t, 7000, 8000}]
+
+
+(* ::Text:: *)
+(*Check that a mutant with higher replication than the resident has s > 0 (and thus > 0 fixation probability)*)
+
+
+mutDynamics5 = rareMutantEcoDynamics[(w /. ecoEx4[[1]]),  (h /. ecoEx4[[1]]), (p /. ecoEx4[[1]]), 1, 1/10 + 1/100, 50, 
+(*(h[tmin]/(h[tmin] + p[tmin]) /. ecoEx4[[1]])*) (h[tmin] /. ecoEx4[[1]]), (p[tmin] /. ecoEx4[[1]]),
+tmin, 8000, conversionTradeOff -> True, attackTradeOff -> False];
+
+
+s5 = (((h2[8000] + p2[8000]) / (h2[8000 - estPeriod] + p2[8000 - estPeriod])) /. mutDynamics5[[1]]) - 1
+
+
+((h2[4000 + 20 * estPeriod] + p2[4000 + 20 * estPeriod]) / (h2[4000 + 19 * estPeriod] + p2[4000 + 19 * estPeriod])) /. mutDynamics5[[1]]
+
+
+Max[1 - Exp[-2 * s5], 0]
+
+
+Plot[(h2[t] /. mutDynamics5[[1]]) / (h[t] /. ecoEx4[[1]]), {t, 4000, 8000}, PlotRange -> Full]
+
+
+Plot[(h2[t] + p2[t] /. mutDynamics5[[1]]), {t, 4000, 8000}, PlotRange -> Full]
+
+
+(* ::Text:: *)
+(*Check that a mutant with replication lower than the resident has s < 0*)
+
+
+mutDynamics6 = rareMutantEcoDynamics[(w /. ecoEx4[[1]]),  (h /. ecoEx4[[1]]), (p /. ecoEx4[[1]]), 1, 1/10 - 1/100, 50, 
+(*(h[tmin]/(h[tmin] + p[tmin]) /. ecoEx4[[1]])*) (h[tmin] /. ecoEx4[[1]]), (p[tmin] /. ecoEx4[[1]]),
+tmin, 8000, conversionTradeOff -> True, attackTradeOff -> False];
+
+
+s6 = (((h2[8000] + p2[8000]) / (h2[8000 - estPeriod] + p2[8000 - estPeriod])) /. mutDynamics6[[1]]) - 1
+
+
+((h2[4000 + 20 * estPeriod] + p2[4000 + 20 * estPeriod]) / (h2[4000 + 19 * estPeriod] + p2[4000 + 19 * estPeriod])) /. mutDynamics6[[1]]
+
+
+(* ::Text:: *)
+(*Estimated fixation probability*)
+
+
+Max[1 - Exp[-2 * s6], 0]
+
+
+Plot[(h2[t] /. mutDynamics6[[1]]) / (h[t] /. ecoEx4[[1]]), {t, 4000, 8000}, PlotRange -> Full]
+
+
+Plot[(h2[t] + p2[t] /. mutDynamics6[[1]]), {t, 4000, 8000}, PlotRange -> Full]
+
+
+(* ::Text:: *)
+(*Also check the mutant with a retention probability less than the resident. Should have s < 0*)
+
+
+mutDynamics7 = rareMutantEcoDynamics[(w /. ecoEx4[[1]]),  (h /. ecoEx4[[1]]), (p /. ecoEx4[[1]]), 1  - 1/100, 1/10, 50, 
+(*(h[tmin]/(h[tmin] + p[tmin]) /. ecoEx4[[1]])*) (h[tmin] /. ecoEx4[[1]]), (p[tmin] /. ecoEx4[[1]]),
+tmin, 8000, conversionTradeOff -> True, attackTradeOff -> False];
+
+
+s7 = ((h2[8000] + p2[8000]) / (h2[8000 - estPeriod] + p2[8000 - estPeriod]) /. mutDynamics7[[1]]) - 1
+
+
+ecoEx5 = residentEcoDynamics[7/50, 0, 50, 1, 1, 1, maxTime -> 8000, attackTradeOff -> False, conversionTradeOff -> True];
+
+
+Plot[{(w[t] /. ecoEx5[[1]]), (h[t] /. ecoEx5[[1]]), (p[t] /. ecoEx5[[1]])}, {t, 0, 8000}]
+
+
+mutDynamics8 = rareMutantEcoDynamics[(w /. ecoEx5[[1]]),  (h /. ecoEx5[[1]]), (p /. ecoEx5[[1]]), 13/100, 0, 50, 
+(*(h[tmin]/(h[tmin] + p[tmin]) /. ecoEx4[[1]])*) (h[4000] /. ecoEx5[[1]]), (p[4000] /. ecoEx5[[1]]),
+4000, 8000, conversionTradeOff -> True, attackTradeOff -> False];
+
+
+mutDynamics8[[2]]
+
+
+Plot[{(h2[t] /. mutDynamics8[[1]]), (p2[t] /. mutDynamics8[[1]])}, {t, 7950, 8000}]
+
+
+s8 = ((h2[8000] + p2[8000]) / (h2[8000 - 50] + p2[8000 - 50]) /. mutDynamics8[[1]]) - 1
+
+
+(* ::Subsection:: *)
+(*Put this into a simulation function*)
+
+
+(* ::Text:: *)
+(*The main thing is going to be checking for cycling -- if it doesn't look like there is cycling in the resident population, the mutant population can't really cycle once has equilibrated (no time delay terms). So I think I'll check if the resident population minimum is < 99% (or 99.9%) of the resident average. If so, we'll calculate the period and use that for finding s. If not, we'll use 50 time steps for finding s.*)
+
+
+simulateEvolution[surfaceLight_, opts:OptionsPattern[]] :=
+Module[{
+(* Variables we'll use inside this function *)
+residentRetention, residentReplication, (* the resident's traits *)
+residentEcology, (* the ecological dynamics with just the resident present *)
+extinction, (* will be True if the entire resident population goes extinct *)
+minResident, maxResident, (* minimum and maximum resident population size *)
+period, (* period of population cycling *)
+mutants, (* list of possible mutants that might arise *)
+fixationProbabilities, (* list of fixation probabilities of possible mutants *)
+retentionVsTime, replicationVsTime,  (* the resident's traits over time (as evolution occurs and the resident changes) *)
+timeVsTime, timeStepStart, (* troubleshooting variables, for measuring how long each step of the simulation takes *)
+cyclingVsTime, (* troubleshooting variable, stores whether cycling occurred *)
+maxMutationSteps = OptionValue[maxMutations]}, (* the maximum number of times we'll simulate a mutant fixing in the population *)
+
+(* Initial lists that will hold the resident's traits over time *)
+retentionVsTime = Table["NA", maxMutationSteps + 1];
+replicationVsTime = Table["NA", maxMutationSteps + 1];
+
+(* Initialize list of runtimes and list of whether cycling occurred (troubleshooting *)
+timeVsTime = Table["NA", maxMutationSteps + 1];
+cyclingVsTime = Table["NA", maxMutationSteps + 1];
+
+(* Initialize the simulation with the initial resident's retention and replication rates (default 0, purely heterotrophic) *)
+residentRetention = OptionValue[initialRetention];
+residentReplication = OptionValue[initialReplication];
+retentionVsTime[[1]] = residentRetention;
+replicationVsTime[[1]] = residentReplication;
+timeVsTime[[1]] = 0;
+
+(* Introduce mutants into the population and see whether they invade and become the new resident. *)
+(* Do is a for loop. We'll be looping over i = 2:1001, which comes at the very end of all this code, because Mathematica is weird about for loop syntax *)
+Do[
+	(* **** Find resident population properties before mutant invasion **** *)
+	timeStepStart = SessionTime[];
+	
+	(* Find the resident's ecological dynamics *)
+	{residentEcology, extinction} = residentEcoDynamics[residentRetention, residentReplication, surfaceLight, 1, 1, 1, 
+		Evaluate[FilterRules[{opts, maxTime -> 8000}, Options[residentEcoDynamics]]]];
+		
+	(* If extinction comes back false, check that the resident population didn't drop to <= 10^-6 (we also consider that extinction) *)
+	If[!(extinction),
+		minResident = NMinimize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 8000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]];
+		extinction = (minResident <= 10^-6)];
+		
+	(* If the resident cannot survive, stop! *)
+	If[extinction,
+	Print["Resident with (retention = " <> ToString[residentRetention] <> ", replication = " <> ToString[residentReplication] <> 
+		") went extinct. No further mutations introduced."];
+	Break[]];
+
+	(* Find the maximum resident population size. We will use this to see if the population is cycling *)
+	maxResident = NMaximize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 8000}, t, Evaluate[FilterRules[{opts}, Options[NMaximize]]]][[1]];
+	
+	(* Check for cycling. Find the period of the cycle if it is present *)
+	If[minResident <= 0.99 * maxResident, 
+		(* The difference between minimum and maximum population sizes suggests cycling. *)
+			cyclingVsTime[[i - 1]] = True;
+			(* Estimate the period of cycling using the heterotroph population *)
+			period = interpolatingFunctionPeriod[(h /. residentEcology)],
+		(* No cycling in the resident population *)
+			cyclingVsTime[[i - 1]] = False;
+			(* Set "period" to an arbitrary number (50 days). *)
+			(* We need "period" to be > 0 to calculate mutant growth, but the exact number doesn't matter if there is no cycling. *)
+			(* We chose 50 days becausie it's similar to the periods for cycling populations *)
+			period = 50
+		];
+	
+	(* **** Simulation mutant invasion **** *)
+	
+	(* Create a list of possible mutants *)
+	mutants = Map[{residentRetention, residentReplication} + #&, {{-1/100, 0}, {1/100, 0}, {0, -1/100}, {0, 1/100}}];
+
+	(* Remove mutants that cannot arise (retention or replication is below 0 or greater than 1) *)
+	mutants = Select[mutants, (0 <= #[[1]] <= 1) && (0 <= #[[2]] <= 1)&];
+	
+	(* Calculate the fixation probability of each mutant. *)
+	fixationProbabilities = Map[ (* Apply the following function to all mutants *)
+		Module[{mutantDynamics, mutantExtinction, minMutant, selectionCoefficient, prFix}, (* Variables we'll use to calculate fixation prob. *)
+		
+			(* Find the mutant's ecological dynamics when rare *)
+			{mutantDynamics, mutantExtinction} = rareMutantEcoDynamics[(w /. residentEcology),  (h /. residentEcology), (p /. residentEcology), 
+				#[[1]] (* Mutant retention *), #[[2]] (* Mutant replication *), surfaceLight, (h[4000] /. residentEcology), (p[4000] /. residentEcology), 
+				4000 (* start time for finding eco. dynamics *), 8000 (* end time *), Evaluate[FilterRules[{opts}, Options[rareMutantEcoDynamics]]]];
+				
+			(* If extinction comes back false, check that mutant population is positive and non-tiny (greater than 10^-10)  *)
+			If[!(mutantExtinction),
+				minMutant = NMinimize[{(h2[t] + p2[t])/. mutantDynamics, 4000 <= t <= 8000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]];
+				mutantExtinction = (minMutant <= 10^-10)];
+
+			If[mutantExtinction,
+				(* If the mutant went extinct, the probability that it fixes is 0 *)
+					prFix = 0,
+				(* If the mutant didn't go extinct... *)
+					(*  Use mutant's growth rate to approximate the selection coefficient *)
+					selectionCoefficient = (( (h2[8000] + p2[8000]) / (h2[8000 - period] + p2[8000 - period]) /. mutantDynamics) - 1) / period;
+					(* Use the selection coefficient to approximate fixation probability *)
+					prFix = 1 - Exp[-2 * selectionCoefficient];
+					(* If the fixation probability is negative, set it to 0 *)
+					prFix = Max[prFix, 0]
+				];
+				
+			(* Return the fixation probability *)
+			prFix]& (* end of module and end of function *)
+			
+		(* Map the above function over all the mutants *)
+		, mutants];
+		
+		
+	(* If all the fixation probabilities are 0, stop the simulation, the resident is locally uninvadable *)
+	If[Total[fixationProbabilities] == 0,
+		Print["Resident (retention = " <> ToString[N[residentRetention]] <> ", replication = " <> ToString[N[residentReplication]] <> ") is locally uninvadable"];
+	
+		(* Fill the last entries of the simulation with the uninvadable resident *)
+		retentionVsTime[[i;;maxMutationSteps + 1]] = residentRetention;
+		replicationVsTime[[i;;maxMutationSteps + 1]] = residentReplication;
+	
+		(* End the simulation (get out of the for loop *)
+		Break[]];
+
+	(* Randomly choose a mutation to fix, based on the fixation probabilities *)
+	{residentRetention, residentReplication} = RandomChoice[fixationProbabilities/Total[fixationProbabilities] -> mutants];
+	
+	(* Record the new resident's trait values *)
+	retentionVsTime[[i]] = residentRetention;
+	replicationVsTime[[i]] = residentReplication;
+	
+	(* Record the time this step of the simulation took *)
+	timeVsTime[[i]] = SessionTime[] - timeStepStart,
+		
+	(* End of the for-loop. We write the variable to iterate over (i) and the values to iterate over, 2 to maxMutationSteps + 1 *)
+	{i, 2, maxMutationSteps + 1}];
+
+(* Return retention and replication values over time *)
+Return[{retentionVsTime, replicationVsTime, timeVsTime, cyclingVsTime}]]
+
+
+testRun = Monitor[simulateEvolution[50, attackTradeOff -> False, conversionTradeOff -> True, maxMutations -> 500, initialRetention -> 0, initialReplication -> 0], i];
+
+
+ListLinePlot[Transpose[testRun[[1;;2]]]]
+
+
+Labeled[
+	ListPlot[MapThread[Style[#1, If[#2, Red, Blue]]&, testRun[[3;;4]]], 
+		PlotLabel -> "Computations take longer when resident shows cycling",
+		Frame -> {True, True, False, False}, FrameLabel -> {"Mutational step number", "Computational time of step (sec)"},
+		PlotLegends -> PointLegend[{Red, Blue}, {"Cycling", "No cycling"}],
+		LabelStyle -> {Black, "Arial", 16}, ImageSize -> Large],
+	Style["Total computational time: " <> ToString[UnitConvert[Quantity[Total[Select[testRun[[3]], NumericQ]], "Seconds"], MixedUnit[{"Minutes", "Seconds"}]]],
+		{Black, "Arial", 14, Italic}]]
+
+
+?Monitor
+
+
+backMuts = Pick[MapThread[{#1, #2, #3}&, {Transpose[testRun[[1;;2, 1;;499]]], Transpose[testRun[[1;;2, 2;;500]]], Range[1, 499]}],
+ Table[testRun[[1;;2, i]] == testRun[[1;;2, i + 2]], {i, 1, 499}]];
+
+
+testSet = Monitor[Table[{light, simulateEvolution[light, attackTradeOff -> False, conversionTradeOff -> True, maxMutations -> 500]}, 
+	{light, {25, 35, 50}}, {j, 3}], {light, j, i}];
+
+
+Table[
+	Show[ListLinePlot[Transpose[testSet[[i, j, 2, 1;;2]]], AspectRatio -> 1, PlotStyle -> Black,
+		Frame -> True, FrameLabel -> If[i == 3, If[j == 1, {"Retention", "Replication"}, {"Rentention", ""}], If[j == 1, {"", "Replication"}, {"", ""}]],
+		PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.01, PlotRangeClipping -> False,
+		PlotLabel -> "Sim " <> ToString[j + (i - 1)*3] <> ", light = " <> ToString[testSet[[i, j, 1]]] <> "\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s"],
+	If[(i == j == 1),
+		ListPlot[{{testSet[[i, j, 2, 1;;2, 1]]}, {testSet[[i, j, 2, 1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10},
+		PlotLegends -> Placed[PointLegend[{"Simulation start", "Simulation end"}, 
+			LegendLabel -> Placed[Style["No attack tradeoff", Italic], Below]], {0.25, 0.85}], LabelStyle -> 14],
+	
+		ListPlot[{{testSet[[i, j, 2, 1;;2, 1]]}, {testSet[[i, j, 2, 1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10}]],
+		LabelStyle -> {14, "Arial", Black}, ImageSize -> 300],
+{i, 3}, {j, 3}] // Grid
+
+Export["sample_no_attack_tradeoff_evo_sims.pdf", %]
+
+
+testSet2 = Monitor[Table[{light, simulateEvolution[light, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 500]}, 
+	{light, {25, 35, 50}}, {j, 3}], {light, j, i}];
+
+
+Export["test_sims_CE.wdx", testSet]
+Export["test_sims_CEAR.wdx", testSet2]
+Export["test_sim_CEAR_extra.wdx", {{80, testRun3}, {50, testRun4}}]
+
+
+Table[
+	Show[ListLinePlot[Transpose[testSet2[[i, j, 2, 1;;2]]], AspectRatio -> 1, PlotStyle -> Black,
+		Frame -> True, FrameLabel -> If[i == 3, If[j == 1, {"Retention", "Replication"}, {"Rentention", ""}], If[j == 1, {"", "Replication"}, {"", ""}]],
+		PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.01, PlotRangeClipping -> False,
+		PlotLabel -> "Sim " <> ToString[j + (i - 1)*3] <> ", light = " <> ToString[testSet2[[i, j, 1]]] <> "\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s"],
+	If[(i == j == 1),
+		ListPlot[{{testSet2[[i, j, 2, 1;;2, 1]]}, {testSet2[[i, j, 2, 1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10},
+		PlotLegends -> Placed[PointLegend[{"Simulation start", "Simulation end"}, 
+			LegendLabel -> Placed[Style["Attack tradeoff", Italic], Below]], {0.25, 0.85}], LabelStyle -> 14],
+	
+		ListPlot[{{testSet2[[i, j, 2, 1;;2, 1]]}, {testSet2[[i, j, 2, 1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10}]],
+		LabelStyle -> {14, "Arial", Black}, ImageSize -> 300],
+{i, 3}, {j, 3}] // Grid
+
+Export["sample_attack_tradeoff_evo_sims.png", %]
+
+
+testRun2 = Monitor[simulateEvolution[50, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 500, initialRetention -> 0, initialReplication -> 0], i];
+
+
+ListLinePlot[Transpose[testRun2[[1;;2]]], PlotRange -> {{0, 1}, {0, 1}}]
+
+
+testRun3 = Monitor[simulateEvolution[80, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 500, initialRetention -> 0, initialReplication -> 0], i];
+
+
+ListLinePlot[Transpose[testRun3[[1;;2]]]]
+
+
+Join[Table[
+	Show[ListLinePlot[Transpose[testSet2[[i, j, 2, 1;;2]]], AspectRatio -> 1, PlotStyle -> Black,
+		Frame -> True, FrameLabel -> If[i == 3, If[j == 1, {"", "Replication"}, If[j == 3, {"Rentention", ""}, {"",""}]], If[j == 1, {"", "Replication"}, {"", ""}]],
+		PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.01, PlotRangeClipping -> False,
+		PlotLabel -> "Sim " <> ToString[j + (i - 1)*3] <> ", light = " <> ToString[testSet2[[i, j, 1]]] <> "\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s"],
+	If[(i == j == 1),
+		ListPlot[{{testSet2[[i, j, 2, 1;;2, 1]]}, {testSet2[[i, j, 2, 1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10},
+		PlotLegends -> Placed[PointLegend[{"Simulation start", "Simulation end"}, 
+			LegendLabel -> Placed[Style["Attack tradeoff", Italic], Below]], {0.25, 0.85}], LabelStyle -> 14],
+	
+		ListPlot[{{testSet2[[i, j, 2, 1;;2, 1]]}, {testSet2[[i, j, 2, 1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10}]],
+		LabelStyle -> {14, "Arial", Black}, ImageSize -> 300],
+{i, 3}, {j, 3}],
+
+	{{Show[ListLinePlot[Transpose[testRun4[[1;;2]]], AspectRatio -> 1, PlotStyle -> Black,
+		Frame -> True, FrameLabel -> {"Retention", "Replication"},
+			PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.01, PlotRangeClipping -> False,
+			PlotLabel -> "Sim " <> ToString[10] <> ", light = " <> ToString[50] <> "\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s"],
+		
+		ListPlot[{{testRun4[[1;;2, 1]]}, {testRun4[[1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10}],
+			LabelStyle -> {14, "Arial", Black}, ImageSize -> 300],
+			
+		Show[ListLinePlot[Transpose[testRun3[[1;;2]]], AspectRatio -> 1, PlotStyle -> Black,
+		Frame -> True, FrameLabel -> {"Retention", ""},
+			PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.01, PlotRangeClipping -> False,
+			PlotLabel -> "Sim " <> ToString[11] <> ", light = " <> ToString[80] <> "\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s"],
+		
+		ListPlot[{{testRun3[[1;;2, 1]]}, {testRun3[[1;;2, -1]]}}, 
+			PlotStyle -> {Darker[Green], Magenta}, PlotMarkers -> {Automatic, 10}],
+			LabelStyle -> {14, "Arial", Black}, ImageSize -> 300]}}] // Grid
+
+Export["sample_attack_tradeoff_evo_sims.pdf", %]
+
+
+testRun4 = Monitor[simulateEvolution[50, attackTradeOff -> True, conversionTradeOff -> True, maxMutations -> 500, initialRetention -> 1/10, initialReplication -> 1/10], i];
+
+
+
+
+
+
