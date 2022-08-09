@@ -66,11 +66,11 @@ kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2
 
 
 (* ::Item:: *)
-(*Attack tradeoff (option attackTradeOff) : off . Retention and replication traits do not affect attack tradeoff .*)
+(*Attack tradeoff (option attackTradeOff) : false . Retention and replication traits do not affect attack rate . If true, the traits decrease the attack rate.*)
 
 
 (* ::Item:: *)
-(*Conversion efficiency tradeoff (option conversionTradeOff) : off . The conversion between phototrophic and heterotrophic biomass is 1. (We don' t use this, we always use a conversion efficiency of c_HP instead .)*)
+(*Conversion efficiency tradeoff (option conversionTradeOff) : false . The conversion between phototrophic and heterotrophic biomass is 1. If true, the conversion is  c_HP instead. We always set this option to true when calling the function, but preserve the default as false for backwards-compatibility with earlier versions of the model.*)
 
 
 (* ::Item:: *)
@@ -123,7 +123,7 @@ Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -
 	Options[NDSolve], Options[NMinimize], Options[NMaximize], Options[FindRoot]];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Ecological dynamics*)
 
 

@@ -6,7 +6,7 @@
 
 
 (* ::Text:: *)
-(*Note on the parameter c_HP in the paper: In the code we have replaced c_HP with its reciprocal, gamma_C. This doesn't come up anywhere for the user, but just be aware that setting gamma_C = 0.7 in the functions below is equivalent to setting c_HP to 10/7. *)
+(*Note on the parameter c_HP in the paper: In the code we have replaced c_HP with its reciprocal, gamma_C. This doesn't come up anywhere for the user, but just be aware that setting gammaC = 0.7 in the functions below is equivalent to setting c_HP to 10/7. *)
 
 
 pW = 3;
@@ -31,7 +31,7 @@ sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 (*iIn = 25; *)(* Incident light *)
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Equations*)
 
 
@@ -39,11 +39,11 @@ Get[NotebookDirectory[] <> "model_and_functions.wls"]
 
 
 (* ::Section::Closed:: *)
-(*Run simulations*)
-
-
-(* ::Subsection::Closed:: *)
 (*Function for classifying simulation outcomes*)
+
+
+(* ::Text:: *)
+(*A simple function to label outcomes of evolution according to the classification scheme in the paper*)
 
 
 classifyOutcome[{retention_, replication_}] :=
@@ -74,7 +74,11 @@ outcomeLabels = {(*"Strict kleptoplast", *)"Obligately kleptoplastidic mixotroph
 myColors = Append[(ColorData["CandyColors"] /@ Subdivide[3])[[{(*1,*) 2, 4}]], White];
 
 
-(* ::Subsection::Closed:: *)
+(* ::Section:: *)
+(*Run simulations*)
+
+
+(* ::Subsection:: *)
 (*Light levels to investigate*)
 
 
@@ -82,7 +86,7 @@ myColors = Append[(ColorData["CandyColors"] /@ Subdivide[3])[[{(*1,*) 2, 4}]], W
 (*Light levels to simulate evolution from heterotrophy*)
 
 
-simLightLevels = {22, 23, 24, 25, 26, 27, 28, 29, 30};
+simLightLevels = {35, 55, 85};
 (*higherLightLevels = {55, 60, 65, 70, 75, 80, 85, 90};*)
 
 
@@ -99,10 +103,6 @@ lowerLightLevels = {20, 21};
 
 
 lightLevels = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
-
-
-(* ::Text:: *)
-(*A simple function to label outcomes of evolution according to the classification scheme in the paper*)
 
 
 (* ::Subsection:: *)
@@ -219,18 +219,19 @@ FrameLabel -> {"Surface light (\[Mu]mol photons/m^2/s)", "Fraction of simulation
 PlotLabel -> "No trade-off"] (* This is the title because we're assuming everything has the CE trade-off, so we're just calling it normal *)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Conversion efficiency and attack rate trade-offs*)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Simulate evolution (light > 21 micromol photons/m^2/s)*)
 
 
-evolutionSimsCEAR = Map[ParallelTable[simulateEvolution[#, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True], 100]&, simLightLevels];
+evolutionSimsCEAR = ParallelMap[{#, simulateEvolution[#, conversionTradeOff -> True, attackTradeOff -> True]}&, 
+	Table[light, {light, simLightLevels}, 10]];
 
 
-Export["evolutionSimsCEAR_10e-6_light22-30_May15.wdx", evolutionSimsCEAR];
+Export["evolutionSimsCEAR_10e-6_Aug9.wdx", evolutionSimsCEAR];
 
 
 (*evolutionSimsCEARmost = Import["evolutionSimsCEAR_10e-6_sims1-100.wdx"];
