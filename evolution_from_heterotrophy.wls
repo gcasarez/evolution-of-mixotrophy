@@ -1,7 +1,7 @@
 #!/usr/bin/env wolframscript
 (* ::Package:: *)
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Parameters*)
 
 
@@ -86,7 +86,7 @@ myColors = Append[(ColorData["CandyColors"] /@ Subdivide[3])[[{(*1,*) 2, 4}]], W
 (*Light levels to simulate evolution from heterotrophy*)
 
 
-simLightLevels = {35, 55, 85};
+simLightLevels = Table[i, {i, 20, 80, 5}]
 (*higherLightLevels = {55, 60, 65, 70, 75, 80, 85, 90};*)
 
 
@@ -228,21 +228,235 @@ PlotLabel -> "No trade-off"] (* This is the title because we're assuming everyth
 
 
 evolutionSimsCEAR = ParallelMap[{#, simulateEvolution[#, conversionTradeOff -> True, attackTradeOff -> True]}&, 
-	Table[light, {light, simLightLevels}, 10]];
+	Flatten[Table[light, {light, simLightLevels}, 40]]];
 
 
-Export["evolutionSimsCEAR_10e-6_Aug9.wdx", evolutionSimsCEAR];
+Export["evolutionSimsCEAR_10e-6_Aug11_replicates11-50.wdx", evolutionSimsCEAR];
 
 
-(*evolutionSimsCEARmost = Import["evolutionSimsCEAR_10e-6_sims1-100.wdx"];
-evolutionSimsCEAR29 = Import["evolutionSimsCEAR_10e-6_sims1-100_light29.wdx"];*)
+evolutionSimsCEAR0 = Import["/home/alexandrabrown/Documents/mixotroph-evolution/saved_results/evolutionSimsCEAR_10e-6_Aug11_light20.wdx"];
 
 
-(*evolutionSimsCEAR = Join[evolutionSimsCEARmost[[1;;7]], evolutionSimsCEAR29, evolutionSimsCEARmost[[{8}]]];
-Export["evolutionSimsCEAR_10e-6_light22-30.wdx", evolutionSimsCEAR];*)
+evolutionSimsCEAR1 = Import["/home/alexandrabrown/Documents/mixotroph-evolution/saved_results/evolutionSimsCEAR_10e-6_Aug11.wdx"];
 
 
-(*evolutionSimsCEAR = Import["evolutionSimsCEAR_10e-6_light22-30.wdx"];*)
+evolutionSimsCEAR2 = Import["/home/alexandrabrown/Documents/mixotroph-evolution/saved_results/evolutionSimsCEAR_10e-6_Aug10.wdx"];
+
+
+evolutionSimsCEAR3 = Import["/home/alexandrabrown/Documents/mixotroph-evolution/saved_results/evolutionSimsCEAR_10e-6_Aug11_light55.wdx"];
+
+
+evolutionSimsCEAR4 = Import["/home/alexandrabrown/Documents/mixotroph-evolution/saved_results/evolutionSimsCEAR_10e-6_Aug11_replicates11-50.wdx"];
+
+
+evolutionSimsCEAR = Join[evolutionSimsCEAR0, evolutionSimsCEAR1, evolutionSimsCEAR2, evolutionSimsCEAR3, evolutionSimsCEAR4];
+
+
+gEvoSimsCEAR = GatherBy[SortBy[evolutionSimsCEAR, #[[1]]&], #[[1]]&];
+simEndpointsCEAR = gEvoSimsCEAR[[All, All, 2, 1;;2, -1]];
+
+
+lightLevels = DeleteDuplicates[Flatten[gEvoSimsCEAR[[All, All, 1]]]];
+
+
+outcomesCEAR = Map[classifyOutcome, simEndpointsCEAR, {2}];
+
+
+outcomeCountsCEAR = Outer[Count, outcomesCEAR, outcomeLabels, 1];
+
+(* Turn the counts into fraction of simulations *)
+outcomeCountsCEAR = outcomeCountsCEAR / Dimensions[outcomesCEAR][[2]];
+
+
+Map[Total, outcomeCountsCEAR]
+
+
+(* ::Subsubsection:: *)
+(*Investigate the simulations that ended up in unexpected places*)
+
+
+(* ::Text:: *)
+(*Find the simulations that weren't able to be classified (those are the ones that ended in a weird place)*)
+
+
+unclassifiedSimsCEAR = Position[outcomesCEAR, "No label", {2}]
+
+
+(* ::Text:: *)
+(*Find their endpoints*)
+
+
+Map[simEndpointsCEAR[[#[[1]], #[[2]]]]&, unclassifiedSimsCEAR]
+
+
+(* ::Text:: *)
+(*Plot those simulations!*)
+
+
+Row[Append[
+	Map[
+		ListLinePlot[gEvoSimsCEAR[[#[[1]], #[[2]], 2, 1;;2]], PlotLabel -> "Light = " <> ToString[gEvoSimsCEAR[[#[[1]], #[[2]], 1]]],
+			Frame -> {True, True, False, False}, FrameLabel -> {"Mutations", "Trait"}, PlotRange -> {{0, 500}, {0, 1}},
+			PlotStyle -> {Blue, Orange}, LabelStyle -> {14, Black, "Arial"}, ImageSize -> 300]&, 
+		unclassifiedSimsCEAR],
+	LineLegend[{Blue, Orange}, {"Retention", "Replication"}, LabelStyle -> {14, Black, "Arial"}]]]
+
+
+(* ::Text:: *)
+(*Restart the simulations from their endpoints. They, uh, just stay there. Let's try manually introducing some mutations.*)
+
+
+restartSimsCEAR = ParallelMap[
+	simulateEvolution[lightLevels[[#[[1]]]], initialRetention -> simEndpointsCEAR[[#[[1]], #[[2]], 1]],
+	initialReplication -> simEndpointsCEAR[[#[[1]], #[[2]], 2]], attackTradeOff -> True, conversionTradeOff -> True]&,
+unclassifiedSimsCEAR];
+
+
+restartSimsCEAR[[All, 1;;2, -1]]
+
+
+restartSimsCEAR[[All, 1;;2, -1]] == Map[simEndpointsCEAR[[#[[1]], #[[2]]]]&, unclassifiedSimsCEAR]
+
+
+Row[Append[
+	Table[
+		ListLinePlot[{MapThread[{#1, #2}&, {Range[0, 500], gEvoSimsCEAR[[unclassifiedSimsCEAR[[i, 1]], unclassifiedSimsCEAR[[i, 2]], 2, 1]]}],
+				MapThread[{#1, #2}&, {Range[0, 500], gEvoSimsCEAR[[unclassifiedSimsCEAR[[i, 1]], unclassifiedSimsCEAR[[i, 2]], 2, 2]]}],
+				MapThread[{#1, #2}&, {Range[500, 1000], restartSimsCEAR[[i, 1]]}],
+				MapThread[{#1, #2}&, {Range[500, 1000], restartSimsCEAR[[i, 2]]}]}, 
+			PlotLabel -> "Light = " <> ToString[gEvoSimsCEAR[[unclassifiedSimsCEAR[[i, 1]], unclassifiedSimsCEAR[[i, 2]], 1]]],
+			Frame -> {True, True, False, False}, FrameLabel -> {"Mutations", "Trait"}, PlotRange -> {{0, 1000}, {0, 1}},
+			PlotStyle -> {Blue, Orange, Directive[{Dashed, Blue}], Directive[{Dashed, Orange}]}, LabelStyle -> {14, Black, "Arial"}, ImageSize -> 300], 
+		{i, Length[restartSimsCEAR]}],
+	LineLegend[{Blue, Orange}, {"Retention", "Replication"}, LabelStyle -> {14, Black, "Arial"}]]]
+
+
+Transpose[restartSimsCEAR[[2, {1, 2, 4}]]]
+
+
+(* ::Text:: *)
+(*I'm pretty sure the problem is that by accident we've gotten things is a slightly different part of the cycle or something. I suppose I should check.*)
+
+
+residentEcoUnclassifiedCEAR = Map[
+residentEcoDynamics[simEndpointsCEAR[[#[[1]], #[[2]], 1]], simEndpointsCEAR[[#[[1]], #[[2]], 2]],
+	lightLevels[[#[[1]]]], 1, 1, 1, maxTime -> 8000, attackTradeOff -> True, conversionTradeOff -> True]&,
+unclassifiedSimsCEAR];
+
+
+(* ::Text:: *)
+(*Find cycle period*)
+
+
+cyclePeriods = Map[interpolatingFunctionPeriod[(h /. #)]&, residentEcoUnclassifiedCEAR[[All, 1]]];
+
+
+(* ::Text:: *)
+(*Plot resident ecology*)
+
+
+Map[Plot[((h[t] + p[t]) /. #), {t, 7000, 8000}]&, residentEcoUnclassifiedCEAR[[All, 1]]]
+
+
+(* ::Text:: *)
+(*Try increasing retention*)
+
+
+retentionMutants = MapThread[
+	rareMutantEcoDynamics[(w /. #1), (h /. #1), (p /. #1), 
+		simEndpointsCEAR[[#2[[1]], #2[[2]], 1]] + 1/100, simEndpointsCEAR[[#2[[1]], #2[[2]], 2]],
+		lightLevels[[#2[[1]]]], (h[4000] /. #1), (p[4000] /. #1), 4000, 8000,
+		attackTradeOff -> True, conversionTradeOff -> True]&,
+	{residentEcoUnclassifiedCEAR[[All, 1]], unclassifiedSimsCEAR}];
+
+
+(* ::Text:: *)
+(*Well, these all look like they can invade, so what gives?*)
+
+
+Map[Plot[((h2[t] + p2[t]) /. #), {t, 7000, 8000}]&, retentionMutants[[All, 1]]]
+
+
+(* ::Text:: *)
+(*Estimate mutant growth rate*)
+
+
+estGrowthRates = MapThread[
+	(((h2[8000] + p2[8000]) / (h2[8000 - #2] + p2[8000 - #2])) /. #1)&,
+	{retentionMutants[[All, 1]], cyclePeriods}]
+
+
+(* ::Text:: *)
+(*Yep, it's a problem with estimation of the growth rate. Try starting from another time point*)
+
+
+estGrowthRates2 = MapThread[
+	(((h2[4000 + #2 * 20] + p2[4000 + #2 * 20]) / (h2[4000 + #2 * 19] + p2[4000 + #2 * 19])) /. #1)&,
+	{retentionMutants[[All, 1]], cyclePeriods}]
+
+
+estGrowthRates3 = MapThread[
+	(((h2[7999] + p2[7999]) / (h2[7999 - #2] + p2[7999 - #2])) /. #1)&,
+	{retentionMutants[[All, 1]], cyclePeriods}]
+
+
+estGrowthRates3 = MapThread[
+	(((h2[7900] + p2[7900]) / (h2[7900 - #2] + p2[7900 - #2])) /. #1)&,
+	{retentionMutants[[All, 1]], cyclePeriods}]
+
+
+(* ::Text:: *)
+(*Ugh. I guess there's something going on at t = 8000?*)
+
+
+estGrowthRatesLots = MapThread[
+	Table[(((h2[endpt] + p2[endpt]) / (h2[endpt - #2] + p2[endpt - #2])) /. #1),
+		{endpt, {4100, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 7900, 7950, 7990, 8000}}]&,
+	{retentionMutants[[All, 1]], cyclePeriods}];
+
+
+TableForm[Map[If[# < 1, Style[#, Bold], #]&, Transpose[estGrowthRatesLots], {2}], 
+TableHeadings -> {{4100, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 7900, 7950, 7990, 8000}, {"Sim 1", "Sim 2", "Sim 3"}}]
+
+
+estGrowthRatesLots2 = MapThread[
+	Table[(((h2[endpt] + p2[endpt]) / (h2[endpt - 5 * #2] + p2[endpt - 5 * #2])) /. #1),
+		{endpt, {4300, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 7900, 7950, 7990, 8000}}]&,
+	{retentionMutants[[All, 1]], cyclePeriods}];
+
+
+TableForm[Map[If[# < 1, Style[#, Bold], #]&, Transpose[estGrowthRatesLots2], {2}], 
+TableHeadings -> {{4300, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 7900, 7950, 7990, 8000}, {"Sim 1", "Sim 2", "Sim 3"}}]
+
+
+estGrowthRatesLots3 = MapThread[
+	Table[(((h2[endpt] + p2[endpt]) / (h2[endpt - 9 * #2] + p2[endpt - 9 * #2])) /. #1),
+		{endpt, {4500, 5000, 5500, 6000, 6500, 7000, 7500, 7900, 7950, 7990, 8000}}]&,
+	{retentionMutants[[All, 1]], cyclePeriods}];
+
+
+TableForm[Map[If[# < 1, Style[#, Bold], #]&, Transpose[estGrowthRatesLots3], {2}], 
+TableHeadings -> {{4300, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 7900, 7950, 7990, 8000}, {"Sim 1", "Sim 2", "Sim 3"}}]
+
+
+estGrowthRatesLots4 = MapThread[
+	Table[(((h2[endpt] + p2[endpt]) / (h2[endpt - 75 * #2] + p2[endpt - 75 * #2])) /. #1),
+		{endpt, {7900, 7950, 7990, 8000}}]&,
+	{retentionMutants[[All, 1]], cyclePeriods}];
+
+
+TableForm[Map[If[# < 1, Style[#, Bold], #]&, Transpose[estGrowthRatesLots4], {2}], 
+TableHeadings -> {{7900, 7950, 7990, 8000}, {"Sim 1", "Sim 2", "Sim 3"}}]
+
+
+estGrowthRatesLots5 = MapThread[
+	Table[(((h2[endpt] + p2[endpt]) / (h2[endpt - #2] + p2[endpt - #2])) /. #1),
+		{endpt, (4000 + #2 * {10, 15, 20, 30, 40, 50})}]&,
+	{retentionMutants[[All, 1]], cyclePeriods}];
+
+
+TableForm[Map[If[# < 1, Style[#, Bold], #]&, Transpose[estGrowthRatesLots5], {2}], 
+TableHeadings -> {{"10x", "15x", "20x", "30x", "40x", "50x"}, {"Sim 1", "Sim 2", "Sim 3"}}]
 
 
 (* ::Subsubsection::Closed:: *)
@@ -276,7 +490,7 @@ ListLinePlot[evolutionSimsCEAR[[i, All, 2]], Frame -> True, FrameLabel -> {"Time
 ImageSize -> 800]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Simulate strict heterotroph at low light (light 20-21 micromol photons/m^2/s)*)
 
 
@@ -284,7 +498,7 @@ ImageSize -> 800]
 (*Strict heterotroph never survives (extinction = True in all cases)*)
 
 
-AllTrue[Table[residentEcoDynamics[0, 0, 20, 1, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True], 100][[All, 2]], #&]
+AllTrue[Table[residentEcoDynamics[0, 0, 20, 1, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True], 10][[All, 2]], #&]
 
 
 AllTrue[Table[residentEcoDynamics[0, 0, 21, 1, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True], 100][[All, 2]], #&]
@@ -321,7 +535,10 @@ FrameLabel -> {"Surface light (\[Mu]mol photons/m^2/s)", "Fraction of simulation
 PlotLabel -> "Attack rate trade-off"] (* This is the title because we're assuming everything has the CE trade-off, so we're just calling it normal *)
 
 
-(* ::Section:: *)
+Export["first_pass_sims.png", %]
+
+
+(* ::Section::Closed:: *)
 (*Check whether the mixotroph population size dropped very low*)
 
 
@@ -457,7 +674,7 @@ extinctionPointsCE = Map[Select[#[[4]] <= 10^-6&], minPopSizesCE];
 extinctionPointsCE
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Plot a line chart showing endpoint of evolution vs light*)
 
 
@@ -467,9 +684,18 @@ outcomesAndLightCEAR = MapThread[{#1, #2}&, {{lightLevels, lightLevels, lightLev
 linePlotCEAR = ListLinePlot[outcomesAndLightCEAR, PlotStyle -> {myColors[[1]], myColors[[2]], Black},
 PlotMarkers -> Automatic,
 PlotLegends -> {"Obligately kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph", "Extinction"},
-Frame -> True, FrameLabel -> {"Surface light (\[Mu]mol photons/m^2/s)", "Fraction of simulations"},
+Frame -> True, FrameLabel -> {"Surface light (\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s)", "Fraction of simulations"},
 PlotLabel -> "Simulated evolution from strict heterotrophy\n Attack rate tradeoff",
 LabelStyle -> {Black, 12, "Arial"}, ImageSize -> 450]
+
+
+Length[lightLevels]
+
+
+N[13*40*15/8/60]
+
+
+Export["preliminary_sims_light_20-80.png", %]
 
 
 outcomesAndLightCE = MapThread[{#1, #2}&, {{lightLevels, lightLevels, lightLevels}, Transpose[outcomeCountsCE]}, 2];
