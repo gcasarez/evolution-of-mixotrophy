@@ -5,11 +5,11 @@
 (*Test rare mutant ecological dynamics at (retention = 1, replication = 0.1)*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Resident ecological dynamics*)
 
 
-ecoEx4 = residentEcoDynamics[1, 1/10, 50, 4, 1, maxTime -> 8000, attackTradeOff -> False, conversionTradeOff -> True];
+ecoEx4 = residentEcoDynamics[1, 1/10, 50, 4, 1, 1, maxTime -> 8000, attackTradeOff -> False, conversionTradeOff -> True];
 
 
 (* ::Text:: *)
