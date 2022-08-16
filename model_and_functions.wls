@@ -123,11 +123,11 @@ Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -
 	Options[NDSolve], Options[NMinimize], Options[NMaximize], Options[FindRoot]];
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Ecological dynamics*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to find the resident ecological dynamics, with no mutant present*)
 
 
@@ -480,6 +480,40 @@ interpolatingFunctionPeriod[ifun_, ignoreEarlyPeaks_:True] :=
 	Return[Median[peakSeparation]]]
 
 
+(* ::Text:: *)
+(*This function returns a list of an interpolating function's peaks*)
+
+
+interpolatingFunctionPeaks::DomainError = "Domain is not 1-dimensional. Dimensions of domain: `1`. If you expected a 1-dimensional domain, check that the Differential Equations package InterpolatingFunctionAnatomy is loaded.";
+interpolatingFunctionPeaks::LacksPeaks = "Peaks detected: `1`. Check that function is periodic and include a larger domain if so.";
+interpolatingFunctionPeaks::PeakSpacing = "Variable peak spacing: std/mean = `1`. Check that function is periodic.";
+
+
+interpolatingFunctionPeaks[ifun_] :=
+	Module[{peakLocations, peakSeparation}, 
+	
+	(* Check that the interpolating function domain is 1-dimensional *)
+	If[Dimensions[InterpolatingFunctionDomain[ifun]] != {1, 2},
+		Message[interpolatingFunctionPeaks::DomainError, Dimensions[InterpolatingFunctionDomain[ifun]]];
+		Return[]];
+		
+	(* Find the locations of the peaks of the interpolating function *)
+	peakLocations = Pick[Flatten[InterpolatingFunctionGrid[ifun]], PeakDetect[InterpolatingFunctionValuesOnGrid[ifun]], 1];
+	
+	(* Check that the function appears to be periodic: has multiple peaks *)
+	If[Length[peakLocations] <= 1,
+		Message[interpolatingFunctionPeaks::LacksPeaks, Length[peakLocations]]];
+	
+	(* Check that the function appears to be periodic: peaks are evenly spaced *)
+	peakSeparation = Differences[peakLocations];
+	If[StandardDeviation[peakSeparation] / Mean[peakSeparation] > 2/100,
+		(* Just give a warning if this check is not met *)
+		Message[interpolatingFunctionPeaks::PeakSpacing, StandardDeviation[peakSeparation] / Mean[peakSeparation]]];
+		
+	(* Return peak locations *)
+	Return[peakLocations]]
+
+
 (* ::Subsection:: *)
 (*Function to simulate evolution *)
 
@@ -489,7 +523,7 @@ interpolatingFunctionPeriod[ifun_, ignoreEarlyPeaks_:True] :=
 (*Use attackTradeOff -> True and conversionTradeOff -> True to turn on the attack tradeoff and to set a conversion factor of cHP between heterotrophic and phototrophic biomass. (cHP set elsewhere with the other parameters.)*)
 
 
-simulateEvolution::periodTooLong = "Period of population cycling is too long to allow growth rate estimation (`1` days) after 20 population cycles. Estimating at 6000 days instead.";
+simulateEvolution::TooFewCycles = "Population cycles after day 4000: `1`. Cannot estimate mutant growth after 20 population cycles. Using constant population approximation instead.";
 
 
 simulateEvolution[surfaceLight_, opts:OptionsPattern[]] :=
@@ -499,8 +533,9 @@ residentRetention, residentReplication, (* the resident's traits *)
 residentEcology, (* the ecological dynamics with just the resident present *)
 extinction, (* will be True if the entire resident population goes extinct *)
 minResident, maxResident, (* minimum and maximum resident population size *)
-period, (* period of population cycling *)
-growthEstimateDay, (* day to estimate mutant growth on, depends on period *)
+totalResident, (* total resident population size over time (heterotroph + phototroph *)
+peaks, (* locations of peaks of resident population cycling *)
+growthEstimateDays, (* days to use to estimate change in mutant population over time *)
 mutants, (* list of possible mutants that might arise *)
 fixationProbabilities, (* list of fixation probabilities of possible mutants *)
 retentionVsTime, replicationVsTime,  (* the resident's traits over time (as evolution occurs and the resident changes) *)
@@ -547,27 +582,34 @@ Do[
 	(* Find the maximum resident population size. We will use this to see if the population is cycling *)
 	maxResident = NMaximize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 6000}, t, Evaluate[FilterRules[{opts}, Options[NMaximize]]]][[1]];
 	
-	(* Check for cycling. Find the period of the cycle if it is present *)
+	(* Check for cycling. If it is present, set growthEstimateDays so that we calculate population sizes at the same point in the cycle *)
 	If[minResident <= 0.99 * maxResident, 
 		(* The difference between minimum and maximum population sizes suggests cycling. *)
 			cyclingVsTime[[i - 1]] = True;
-			(* Estimate the period of cycling using the heterotroph population *)
-			period = interpolatingFunctionPeriod[(h /. residentEcology)],
-		(* No cycling in the resident population *)
+			
+			(* Get the mixotroph population *)
+			totalResident =  Interpolation[Transpose[{InterpolatingFunctionGrid[ (h /. residentEcology)] (* time points *), 
+				InterpolatingFunctionValuesOnGrid[(h /. residentEcology)] + InterpolatingFunctionValuesOnGrid[(p /. residentEcology)] (* pop. sizes *)}],
+				InterpolationOrder -> 1];
+				
+			(* Get the location of resident population peaks that occur after mutant invasion *)
+			peaks = interpolatingFunctionPeaks[totalResident];
+			peaks = Select[peaks, # >= 4000&];
+			
+			(* If there are enough peaks, store the 16th peak and the 20th peak, so growth rate can be estimated over 5 population cycles *)
+			If[Length[peaks] >= 20,
+				growthEstimateDays = {peaks[[16]], peaks[[20]]},
+				
+				(* If there are very few peaks, probably something is wrong, so print a warning and estimate growth rate over days 4750 - 5000 *)
+				Message[simulateEvolution::TooFewCycles, Length[peaks]];
+				cyclingVsTime[[i - 1]] = "Ignored";
+				growthEstimateDays = {4750, 5000}
+			],
+				
+		(* No cycling in the resident population. Estimate growth rate over days 4750 - 5000. *)
 			cyclingVsTime[[i - 1]] = False;
-			(* Set "period" to an arbitrary number (50 days). *)
-			(* We need "period" to be > 0 to calculate mutant growth, but the exact number doesn't matter if there is no cycling. *)
-			(* We chose 50 days becausie it's similar to the periods for cycling populations *)
-			period = 50
+			growthEstimateDays = {4750, 5000}
 		];
-		
-	(* Check that the period length is short enough to estimate mutant growth rate between periods 19 and 20 *)
-	If[20 * period + 4000 <= 6000,
-		(* We can estimate the growth rate using the difference between the population sizes at cycles 19 and 20 *)
-		growthEstimateDay = 20 * period + 4000,
-		(* The period is too long, estimate growth rate using the difference between day 6000 - period and day 6000. *)
-		Message[simulateEvolution::periodTooLong, period];
-		growthEstimateDay = 6000];
 	
 	(* **** Simulation mutant invasion **** *)
 	
@@ -596,7 +638,7 @@ Do[
 					prFix = 0,
 				(* If the mutant didn't go extinct... *)
 					(*  Use mutant's growth rate to approximate the selection coefficient *)
-					selectionCoefficient = (( (h2[growthEstimateDay] + p2[growthEstimateDay]) / (h2[growthEstimateDay - period] + p2[growthEstimateDay - period]) /. mutantDynamics) - 1) / period;
+					selectionCoefficient = (( (h2[growthEstimateDays[[2]]] + p2[growthEstimateDays[[2]]]) / (h2[growthEstimateDays[[1]]] + p2[growthEstimateDays[[2]]]) /. mutantDynamics) - 1) / (growthEstimateDays[[2]] - growthEstimateDays[[1]]);
 					(* Use the selection coefficient to approximate fixation probability *)
 					prFix = 1 - Exp[-2 * selectionCoefficient];
 					(* If the fixation probability is negative, set it to 0 *)

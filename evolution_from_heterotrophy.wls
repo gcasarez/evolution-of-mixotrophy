@@ -326,12 +326,15 @@ Row[Append[
 				MapThread[{#1, #2}&, {Range[500, 1000], restartSimsCEAR[[i, 2]]}]}, 
 			PlotLabel -> "Light = " <> ToString[gEvoSimsCEAR[[unclassifiedSimsCEAR[[i, 1]], unclassifiedSimsCEAR[[i, 2]], 1]]],
 			Frame -> {True, True, False, False}, FrameLabel -> {"Mutations", "Trait"}, PlotRange -> {{0, 1000}, {0, 1}},
-			PlotStyle -> {Blue, Orange, Directive[{Dashed, Blue}], Directive[{Dashed, Orange}]}, LabelStyle -> {14, Black, "Arial"}, ImageSize -> 300], 
+			PlotStyle -> {Directive[{Dashed, Blue}], Directive[{Dashed, Orange}], Blue, Orange}, LabelStyle -> {14, Black, "Arial"}, ImageSize -> 300], 
 		{i, Length[restartSimsCEAR]}],
 	LineLegend[{Blue, Orange}, {"Retention", "Replication"}, LabelStyle -> {14, Black, "Arial"}]]]
 
 
-Transpose[restartSimsCEAR[[2, {1, 2, 4}]]]
+Transpose[restartSimsCEAR[[1, 1;;2, All;;-2]]]
+
+
+MapThread[If[#1 == #2, #1]&, {Transpose[restartSimsCEAR[[1, 1;;2, 3;;All]]], Transpose[restartSimsCEAR[[1, 1;;2, All;;-3]]]}]
 
 
 (* ::Text:: *)
