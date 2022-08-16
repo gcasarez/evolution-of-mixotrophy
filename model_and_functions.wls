@@ -127,7 +127,7 @@ Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -
 (*Ecological dynamics*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Function to find the resident ecological dynamics, with no mutant present*)
 
 
@@ -420,7 +420,7 @@ If[extinction == False,
 Return[{mutantEcoDynamics, extinction}]]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Helper function that estimate the period of an interpolating function*)
 
 
@@ -430,6 +430,7 @@ Return[{mutantEcoDynamics, extinction}]]
 
 
 Needs["DifferentialEquations`InterpolatingFunctionAnatomy`"];
+ParallelNeeds["DifferentialEquations`InterpolatingFunctionAnatomy`"];
 
 
 (* ::Text:: *)
@@ -438,7 +439,7 @@ Needs["DifferentialEquations`InterpolatingFunctionAnatomy`"];
 (* - at least two peaks, so the period can be estimated from the distance between the peaks*)
 
 
-interpolatingFunctionPeriod::DomainError = "Domain is not 1-dimensional.";
+interpolatingFunctionPeriod::DomainError = "Domain is not 1-dimensional. Dimensions of domain: `1`";
 interpolatingFunctionPeriod::NotPeriodic = "Peaks detected: `1`. Check that function is periodic and include a larger domain if so.";
 interpolatingFunctionPeriod::FewPeaks = "Cannot discard first 3 estimates of period, because only `1` estimates can be obtained.";
 
@@ -453,7 +454,7 @@ interpolatingFunctionPeriod[ifun_, ignoreEarlyPeaks_:True] :=
 	
 	(* Check that the interpolating function domain is 1-dimensional *)
 	If[Dimensions[InterpolatingFunctionDomain[ifun]] != {1, 2},
-		Message[interpolatingFunctionPeriod::DomainError];
+		Message[interpolatingFunctionPeriod::DomainError, Dimensions[InterpolatingFunctionDomain[ifun]]];
 		Return[]];
 		
 	(* Find the locations of the peaks of the interpolating function *)
@@ -479,13 +480,16 @@ interpolatingFunctionPeriod[ifun_, ignoreEarlyPeaks_:True] :=
 	Return[Median[peakSeparation]]]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Function to simulate evolution *)
 
 
 (* ::Text:: *)
 (*Takes the surface light as input and simulates evolution from heterotrophy (default) or from another set of initial retention and replication values, if the options initialRetention and initialReplication are given.*)
 (*Use attackTradeOff -> True and conversionTradeOff -> True to turn on the attack tradeoff and to set a conversion factor of cHP between heterotrophic and phototrophic biomass. (cHP set elsewhere with the other parameters.)*)
+
+
+simulateEvolution::periodTooLong = "Period of population cycling is too long to allow growth rate estimation (`1` days) after 20 population cycles. Estimating at 6000 days instead.";
 
 
 simulateEvolution[surfaceLight_, opts:OptionsPattern[]] :=
@@ -496,6 +500,7 @@ residentEcology, (* the ecological dynamics with just the resident present *)
 extinction, (* will be True if the entire resident population goes extinct *)
 minResident, maxResident, (* minimum and maximum resident population size *)
 period, (* period of population cycling *)
+growthEstimateDay, (* day to estimate mutant growth on, depends on period *)
 mutants, (* list of possible mutants that might arise *)
 fixationProbabilities, (* list of fixation probabilities of possible mutants *)
 retentionVsTime, replicationVsTime,  (* the resident's traits over time (as evolution occurs and the resident changes) *)
@@ -526,11 +531,11 @@ Do[
 	
 	(* Find the resident's ecological dynamics *)
 	{residentEcology, extinction} = residentEcoDynamics[residentRetention, residentReplication, surfaceLight, 1, 1, 1, 
-		Evaluate[FilterRules[{opts, maxTime -> 8000}, Options[residentEcoDynamics]]]];
+		Evaluate[FilterRules[{opts, maxTime -> 6000}, Options[residentEcoDynamics]]]];
 		
 	(* If extinction comes back false, check that the resident population didn't drop to <= 10^-6 (we also consider that extinction) *)
 	If[!(extinction),
-		minResident = NMinimize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 8000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]];
+		minResident = NMinimize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 6000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]];
 		extinction = (minResident <= 10^-6)];
 		
 	(* If the resident cannot survive, stop! *)
@@ -540,7 +545,7 @@ Do[
 	Break[]];
 
 	(* Find the maximum resident population size. We will use this to see if the population is cycling *)
-	maxResident = NMaximize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 8000}, t, Evaluate[FilterRules[{opts}, Options[NMaximize]]]][[1]];
+	maxResident = NMaximize[{(h[t] + p[t])/. residentEcology, 3000 <= t <= 6000}, t, Evaluate[FilterRules[{opts}, Options[NMaximize]]]][[1]];
 	
 	(* Check for cycling. Find the period of the cycle if it is present *)
 	If[minResident <= 0.99 * maxResident, 
@@ -555,6 +560,14 @@ Do[
 			(* We chose 50 days becausie it's similar to the periods for cycling populations *)
 			period = 50
 		];
+		
+	(* Check that the period length is short enough to estimate mutant growth rate between periods 19 and 20 *)
+	If[20 * period + 4000 <= 6000,
+		(* We can estimate the growth rate using the difference between the population sizes at cycles 19 and 20 *)
+		growthEstimateDay = 20 * period + 4000,
+		(* The period is too long, estimate growth rate using the difference between day 6000 - period and day 6000. *)
+		Message[simulateEvolution::periodTooLong, period];
+		growthEstimateDay = 6000];
 	
 	(* **** Simulation mutant invasion **** *)
 	
@@ -571,11 +584,11 @@ Do[
 			(* Find the mutant's ecological dynamics when rare *)
 			{mutantDynamics, mutantExtinction} = rareMutantEcoDynamics[(w /. residentEcology),  (h /. residentEcology), (p /. residentEcology), 
 				#[[1]] (* Mutant retention *), #[[2]] (* Mutant replication *), surfaceLight, (h[4000] /. residentEcology), (p[4000] /. residentEcology), 
-				4000 (* start time for finding eco. dynamics *), 8000 (* end time *), Evaluate[FilterRules[{opts}, Options[rareMutantEcoDynamics]]]];
+				4000 (* start time for finding eco. dynamics *), 6000 (* end time *), Evaluate[FilterRules[{opts}, Options[rareMutantEcoDynamics]]]];
 				
 			(* If extinction comes back false, check that mutant population is positive and non-tiny (greater than 10^-10)  *)
 			If[!(mutantExtinction),
-				minMutant = NMinimize[{(h2[t] + p2[t])/. mutantDynamics, 4000 <= t <= 8000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]];
+				minMutant = NMinimize[{(h2[t] + p2[t])/. mutantDynamics, 4000 <= t <= 6000}, t, Evaluate[FilterRules[{opts}, Options[NMinimize]]]][[1]];
 				mutantExtinction = (minMutant <= 10^-10)];
 
 			If[mutantExtinction,
@@ -583,7 +596,7 @@ Do[
 					prFix = 0,
 				(* If the mutant didn't go extinct... *)
 					(*  Use mutant's growth rate to approximate the selection coefficient *)
-					selectionCoefficient = (( (h2[8000] + p2[8000]) / (h2[8000 - period] + p2[8000 - period]) /. mutantDynamics) - 1) / period;
+					selectionCoefficient = (( (h2[growthEstimateDay] + p2[growthEstimateDay]) / (h2[growthEstimateDay - period] + p2[growthEstimateDay - period]) /. mutantDynamics) - 1) / period;
 					(* Use the selection coefficient to approximate fixation probability *)
 					prFix = 1 - Exp[-2 * selectionCoefficient];
 					(* If the fixation probability is negative, set it to 0 *)
