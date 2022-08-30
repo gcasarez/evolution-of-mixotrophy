@@ -205,7 +205,7 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Find Stable Equilibria!*)
 
 
@@ -493,7 +493,7 @@ mixotrophCycle - ((h + p) /. %) //
 	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Mixotroph min. - (Heterotroph min. + Photroph min.)", "Mixotroph max. - (Heterotroph max. + Photroph max.)"}}]&
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Plot*)
 
 
@@ -583,11 +583,11 @@ ListLinePlot[{mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima},
 Graphics[{Directive[colorM, Opacity[0.1]], Polygon[Flatten[{mixotrophPlotPointsMinima, Reverse[mixotrophPlotPointsMaxima]}, 1]]}]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Make final plots*)
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Example population dynamics subpanels*)
 
 
@@ -656,7 +656,7 @@ fullPopPlots = Table[
 		PlotRange -> {{0, 4000}, {0, 26}},
 		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/mL)"}, 
 		PlotStyle -> {colorW, colorM}, 
-		AspectRatio -> 1/2, ImageSize -> 600],
+		AspectRatio -> 1/2, ImageSize -> 72 * 5],
 {i, 2}]
 
 
@@ -689,14 +689,14 @@ Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Assemble a supplementary figure*)
 
 
 Column[{
-Show[fullPopPlots[[1]], PlotLabel -> Pane["(A)", {600, 20}],
+Show[fullPopPlots[[1]], PlotLabel -> Pane["(A)", {72 * 4, 20}],
 	Epilog -> Inset[finalPlotLegend, {3200, 19}]], (* Add the legend to plot (A), as it has the most empty space *)
-Show[fullPopPlots[[2]], PlotLabel -> Pane["(B)", {600, 20}]]},
+Show[fullPopPlots[[2]], PlotLabel -> Pane["(B)", {72 * 4, 20}]]},
 Spacer[5]]
 Export["extended_population_dynamics_from_bifurcation_diagram.pdf", %]
 
