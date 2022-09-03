@@ -9,11 +9,6 @@
 (*Note on the parameter c_HP in the paper: In the code we have replaced c_HP with its reciprocal, gamma_C. This doesn't come up anywhere for the user, but just be aware that setting gamma_C = 0.7 in the functions below is equivalent to setting c_HP to 10/7. *)
 
 
-(* ::Text:: *)
-(*These parameters produce evolution to different ESSs at different light levels (25 vs. 1000) with conversion trade +/- attack trade off (same ESSs with either)*)
-(*Removing conversion trade-off means we lose this, partly I think because of changes in ability of the mixotroph to survive/maintain decent population sizes at high retention rates*)
-
-
 pW = 3;
 gammaP = 2/3;(*2/3;*)(*2.9/3;*)
 sigmaP = 0;
@@ -43,7 +38,7 @@ sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 Get[NotebookDirectory[] <> "model_and_functions.wls"]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Find ecological equilibrium & derivative of invasion fitness*)
 
 
@@ -144,8 +139,8 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 {#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsCE, {2}];
 
 
-(* ::Section:: *)
-(*Put the plots together*)
+(* ::Section::Closed:: *)
+(*Plot prey density and selection gradient*)
 
 
 (* ::Subsection::Closed:: *)
@@ -171,12 +166,14 @@ SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 14, FontFamily -> "Arial"
 
 
 SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}];
-(*SetOptions[SwatchLegend, LabelStyle \[Rule] {FontSize -> 12, FontFamily -> "Arial"}];
-SetOptions[PointLegend, LabelStyle \[Rule] {FontSize -> 12, FontFamily -> "Arial"}];*)
 
 
 (* ::Subsection::Closed:: *)
 (*Prey density plots*)
+
+
+(* ::Subsubsection::Closed:: *)
+(*No attack trade-off*)
 
 
 preyDensityPlotsCE = Table[Show[Graphics[Inset[
@@ -189,6 +186,10 @@ preyDensityPlotsCE = Table[Show[Graphics[Inset[
 	Frame -> True, FrameStyle -> Black, LabelStyle -> {Black, "Arial", 12}, ImageSize -> 72*2.25],
 
 {i, Length[derivsForPlotsCE]}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Attack trade-off*)
 
 
 preyDensityPlotsCEAR = Table[Show[Graphics[Inset[
@@ -207,10 +208,18 @@ preyDensityPlotsCEAR = Table[Show[Graphics[Inset[
 (*Selection vector plots*)
 
 
+(* ::Subsubsection::Closed:: *)
+(*No attack trade-off*)
+
+
 vectorPlotsCE = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], 
 	VectorStyle -> Darker[Gray], VectorColorFunction -> None, VectorPoints -> noExtinctionPointsCE[[i, All, 2;;3]],
 	VectorScale -> {Automatic, Automatic, None}],
 {i, Length[derivsForPlotsCE]}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Attack trade-off*)
 
 
 vectorPlotsCEAR = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCEAR[[i]]], 
@@ -223,11 +232,19 @@ vectorPlotsCEAR = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCEAR
 (*Plots showing extinction points*)
 
 
+(* ::Subsubsection::Closed:: *)
+(*No attack trade-off*)
+
+
 extinctionPlotCE = Table[
 Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, 
 extinctionPointsCE[[i, All, 2;;3]]]],
 
 {i, Length[derivsForPlotsCE]}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Attack trade-off*)
 
 
 extinctionPlotCEAR = Table[
@@ -241,24 +258,88 @@ extinctionPointsCEAR[[i, All, 2;;3]]]],
 (*Markers for the ESSs*)
 
 
-fkpRegion = Graphics[{FaceForm[], EdgeForm[{Thickness[0.03], Black}], Rectangle[{0, 1.015}, {1, 1.085}, RoundingRadius -> 0.035]}];
+(* ::Subsubsection::Closed:: *)
+(*No attack trade-off*)
+
+
+(* ::Text:: *)
+(*Find the retention probabilities where replication = 1 is an ESS*)
+
+
+fkpESSpointsCE = Table[
+	Select[derivsForPlotsCE[[i]], (#[[1, 2]] == 1) (* replication = 1*) && 
+		(Chop[#[[2, 1]], 10^-1] == 0) (* no selection on retention *) && 
+		(#[[2, 2]] > 0) (* positive selection on replication *)&][[All, 1, 1]],
+	{i, Length[derivsForPlotsCE]}];
+
+
+(* ::Text:: *)
+(*Get the minimum & maximum retention probabilities where replication = 1 is an ESS*)
+
+
+fkpESSrangeCE = Map[MinMax, fkpESSpointsCE];
+
+
+(* ::Text:: *)
+(*Draw rectangles marking the region where relication = 1 is an ESS*)
+
+
+fkpRegionsCE = Map[Graphics[{FaceForm[], EdgeForm[{Thickness[0.03], Black}], 
+	Rectangle[{Max[#[[1]] - 1/20, 0], 1.015}, {Min[#[[2]] + 1/20, 1], 1.085}, RoundingRadius -> 0.035]}]&, fkpESSrangeCE];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Attack trade-off*)
+
+
+(* ::Text:: *)
+(*Marker for obligately kleptoplastidic phototrophy (retention = 1, replication = 0)*)
+
+
 okpPoint = Graphics[{Thickness[0.03], Black, Circle[{1, 0}, 0.07]}];
 
 
-(* Find the boundaries of survival when replication = 1 *)
+(* ::Text:: *)
+(*Find the retention probabilities where replication = 1 is an ESS*)
+
+
+fkpESSpointsCEAR = Table[
+	Select[derivsForPlotsCEAR[[i]], (#[[1, 2]] == 1) (* replication = 1*) && 
+		(Chop[#[[2, 1]], 10^-1] == 0) (* no selection on retention *) && 
+		(#[[2, 2]] > 0) (* positive selection on replication *)&][[All, 1, 1]],
+	{i, Length[derivsForPlotsCEAR]}];
+
+
+(* ::Text:: *)
+(*Get the minimum & maximum retention probabilities where replication = 1 is an ESS*)
+
+
+fkpESSrangeCEAR = Map[MinMax, fkpESSpointsCEAR];
+
+
+(* ::Text:: *)
+(*Also get the maximum retention probability where consumers with replication = 1 can survive*)
+
+
 maxSurvivableRetention = Table[Min[Select[extinctionPointsCEAR[[i]], #[[3]] == 1&][[All, 2]]] - 1/10, {i, Length[extinctionPointsCEAR]}];
 
-fkpRegions = Map[Graphics[{FaceForm[], EdgeForm[{Thickness[0.03], Black}], Rectangle[{0, 1.015}, {#, 1.085}, RoundingRadius -> 0.035]}]&, 
-	maxSurvivableRetention];
+
+(* ::Text:: *)
+(*Draw rectangles marking the region where relication = 1 is an ESS*)
+
+
+fkpRegionsCEAR = MapThread[Graphics[{FaceForm[], EdgeForm[{Thickness[0.03], Black}], 
+	Rectangle[{Max[#1[[1]] - 1/20, 0], 1.015}, {Min[#1[[2]] + 1/20, #2], 1.085}, RoundingRadius -> 0.035]}]&, 
+	{fkpESSrangeCEAR, maxSurvivableRetention}];
 
 
 (* ::Subsection::Closed:: *)
 (*Combine plots, extinction markers, and ESS markers*)
 
 
-annotatedPlotsCE = MapThread[Show[{#1, #2, fkpRegion, #3}, 
+annotatedPlotsCE = MapThread[Show[{#1, #2, #3, #4}, 
 	ImagePadding -> {{Automatic, 5}, {Automatic, 8}}, Background -> None]&, 
-	{preyDensityPlotsCE, vectorPlotsCE, extinctionPlotCE}];
+	{preyDensityPlotsCE, vectorPlotsCE, fkpRegionsCE, extinctionPlotCE}];
 	
 annotatedPlotsCE = MapThread[
 	Labeled[#1, 
@@ -269,7 +350,7 @@ annotatedPlotsCE = MapThread[
 
 annotatedPlotsCEAR = MapThread[Show[{#1, #2, #3, okpPoint, #4}, 
 	ImagePadding -> {{Automatic, 5}, {Automatic, 8}}, Background -> None]&, 
-	{preyDensityPlotsCEAR, vectorPlotsCEAR, fkpRegions, extinctionPlotCEAR}];
+	{preyDensityPlotsCEAR, vectorPlotsCEAR, fkpRegionsCEAR, extinctionPlotCEAR}];
 	
 annotatedPlotsCEAR = MapThread[
 	Labeled[#1, 
@@ -344,11 +425,11 @@ compiledPlots = Grid[{{Grid[ (* We do a grid of a grid to get around an export g
 Export["marked_vectorplots.pdf", compiledPlots]
 
 
-(* ::Subsection:: *)
+(* ::Section::Closed:: *)
 (*Supplementary plot showing magnitude of selection gradient*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Selection gradient colors*)
 
 
@@ -377,10 +458,10 @@ Quantile[Flatten[{vectorMagnitudesCE, vectorMagnitudesCEAR}], {0.9, 0.925, 0.95,
 (*Create a color scheme based on vector magnitudes*)
 
 
-vectorMagnitudeColors[m_] := ColorData[{"ValentineTones", "Reverse"}][If[m <= 60, m/65, 1]]
+vectorMagnitudeColors[m_] := ColorData[{"ValentineTones", "Reverse"}][If[m <= 60, m/65, 1]];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Selection vector plots*)
 
 
@@ -392,7 +473,7 @@ vectorMagnitudePlotsCE = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPl
 	PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.05,
 	LabelStyle -> {12, Black, "Arial"},
 	ImageSize -> 72 * 2.25],
-{i, Length[derivsForPlotsCE]}]
+{i, Length[derivsForPlotsCE]}];
 
 
 vectorMagnitudePlotsCEAR = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCEAR[[i]]],
@@ -403,10 +484,10 @@ vectorMagnitudePlotsCEAR = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsFor
 	PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.05,
 	LabelStyle -> {12, Black, "Arial"},
 	ImageSize -> 72 * 2.25],
-{i, Length[derivsForPlotsCEAR]}]
+{i, Length[derivsForPlotsCEAR]}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Combine plots with markers showing extinction points*)
 
 
@@ -428,7 +509,7 @@ vectorMagnitudeMarkedPlotsCE = MapThread[Show, {vectorMagnitudePlotsCE, extincti
 vectorMagnitudeMarkedPlotsCEAR = MapThread[Show, {vectorMagnitudePlotsCEAR, extinctionPlotCEAR}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Label plots*)
 
 
@@ -501,7 +582,7 @@ xlabel = Pane[Style["Retention (\[Phi])", FontColor -> Black, FontFamily -> "Ari
 	ImageSize -> 2.5 * 72, Alignment -> {0.2, Center}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Compile plots into a grid*)
 
 
@@ -521,8 +602,8 @@ compiledVectorMagnitudePlots = Grid[{{Grid[ (* We do a grid of a grid to get aro
 Export["vector_magnitude_plots.pdf", compiledVectorMagnitudePlots]
 
 
-(* ::Section:: *)
-(*Extinction is due to presence of prey*)
+(* ::Section::Closed:: *)
+(*Extinction at high retention & replication is due to presence of prey*)
 
 
 (* ::Text:: *)
@@ -538,14 +619,22 @@ neighborDynamics = residentEcoDynamics[1, 1, 50, neighborPt[[1]], neighborPt[[2]
 jumpDynamics = residentEcoDynamics[1, 1, 50, jumpPt[[1]], jumpPt[[2]], jumpPt[[3]], attackTradeOff -> True, conversionTradeOff -> True]
 
 
-Plot[((h[t] + p[t])/. jumpDynamics[[1]]), {t, 0, 4000}, PlotRange -> {{0, 4000}, {0, 25}}]
+(* ::Text:: *)
+(*Extinction when prey are present*)
 
 
 Plot[If[t <= 32.9, ((h[t] + p[t])/. neighborDynamics[[1]]), 0], {t, 0, 4000}]
 
 
 (* ::Text:: *)
-(*Introduce prey into prey-free equilibrium*)
+(*Survival when prey are not present*)
+
+
+Plot[((h[t] + p[t])/. jumpDynamics[[1]]), {t, 0, 4000}, PlotRange -> {{0, 4000}, {0, 25}}]
+
+
+(* ::Text:: *)
+(*Introduce prey into prey-free equilibrium. We can see that the prey-free equilibrium is unstable, and the mixotroph population goes extinct when prey are introduced*)
 
 
 preyFreeEquil = {w[4000], h[4000], p[4000]} /. jumpDynamics[[1]]
