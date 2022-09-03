@@ -50,26 +50,26 @@ Get[NotebookDirectory[] <> "model_and_functions.wls"]
 lightLevels = {25, 35, 50};
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Attack & conversion trade-offs*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCEAR = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
+ecoDynamicsCEAR = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
 {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
 
 ecoDynamicsCEAR = Flatten[ecoDynamicsCEAR, {{1}, {2,3}, {4}}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCEAR = Table[{light, retention, replication, 
+minPopSizesCEAR = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> True]},
  {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -88,7 +88,7 @@ extinctionPointsCEAR = Table[Pick[ecoDynamicsCEAR[[i]], Map[#[[4]] <= 10^-6&, mi
 noExtinctionPointsCEAR = Table[Pick[ecoDynamicsCEAR[[i]], Map[#[[4]] > 10^-6&, minPopSizesCEAR[[i]]]], {i, Length[ecoDynamicsCEAR]}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Find the derivative of invasion fitness*)
 
 
@@ -100,15 +100,15 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 Export["phototroph_eats_CEAR.wdx", derivsForPlotsCEAR]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Conversion trade-off only*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCE = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
+ecoDynamicsCE = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 conversionTradeOff -> True, attackTradeOff -> False]],
 {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
@@ -116,11 +116,11 @@ conversionTradeOff -> True, attackTradeOff -> False]],
 ecoDynamicsCE = Flatten[ecoDynamicsCE, {{1}, {2,3}, {4}}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCE = Table[{light, retention, replication, 
+minPopSizesCE = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> False]},
  {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -139,7 +139,7 @@ extinctionPointsCE = Table[Pick[ecoDynamicsCE[[i]], Map[#[[4]] <= 10^-6&, minPop
 noExtinctionPointsCE = Table[Pick[ecoDynamicsCE[[i]], Map[#[[4]] > 10^-6&, minPopSizesCE[[i]]]], {i, Length[ecoDynamicsCE]}];
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Find the derivative of invasion fitness*)
 
 
@@ -154,6 +154,10 @@ Export["phototroph_eats_CE.wdx", derivsForPlotsCE]
 
 (* ::Section:: *)
 (*Plots*)
+
+
+(* ::Subsection::Closed:: *)
+(*Set font and colors*)
 
 
 (* ::Text:: *)
@@ -178,69 +182,149 @@ maxPrey = Max[{Flatten[Map[Select[#[[4]] == False&], ecoDynamicsCEAR][[All, All,
 preyDensityColors[p_] := ColorData[{"BeachColors", "Reverse"}][Log[(p + 1)]/Log[maxPrey + 1]]
 
 
-preyDensityLegend = BarLegend[{preyDensityColors[Exp[#] - 1]&, {Log[1], Log[1 + maxPrey]}}, 
-Ticks -> Table[{Log[i + 1], ToString[i]}, {i, {0, 1, 2.5, 5, 10, 15, 25, 40}}],
-LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}];
-
-
-(* ::Text:: *)
+(* ::Subsection::Closed:: *)
 (*Make plots*)
 
 
-streamPlotsCE = Table[
-Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlotsCE[[i]]], 
-	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
-	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
-	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> "(" <> Capitalize[Alphabet[][[i]]] <> ") No tradeoff\nSurface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/" <> 
-		ToString[Superscript["m", "2"], StandardForm] <> "/s", ImageSize -> Medium], 
-	
-	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], StreamStyle -> Black, StreamColorFunction -> None(*, StreamPoints \[Rule] noExtinctionPointsCE[[i, All, 1]]*)],
-	
-	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCE[[i, All, 2;;3]]]]}],
-{i, Length[derivsForPlotsCE]}]
+(* ::Subsubsection::Closed:: *)
+(*Prey density*)
 
-streamPlotsCEAR = Table[
-Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsCEAR[[i]]], 
-	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
+
+{preyDensityPlotsCE, preyDensityPlotsCEAR} = Table[Show[Graphics[Inset[
+	Rasterize[ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlots[[i]]], 
+	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1, 
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
-	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> "(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ") Attack tradeoff\nSurface light = " <> 
-		ToString[lightLevels[[i]]] <> "\[Mu]mol photons/" <> ToString[Superscript["m", "2"], StandardForm] <> "/s", 
-	ImageSize -> Medium], 
+	PlotRangePadding -> 0, ImagePadding -> 0, ImageMargins -> 0, FrameLabel -> None, Frame -> None]],
 	
-	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCEAR[[i]]], StreamStyle -> Black, StreamColorFunction -> None (*, StreamPoints \[Rule] noExtinctionPointsCEAR[[i, All, 1]]*)],
-	
-	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsCEAR[[i, All, 2;;3]]]]}],
-{i, Length[derivsForPlotsCEAR]}]
+	{0, 0}, {0, 0}, Scaled[1/1.1]], PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.05, ImagePadding -> Full], 
+	Frame -> True, FrameStyle -> Black, LabelStyle -> {Black, "Arial", 12}, ImageSize -> 72*2.25],
+
+{derivsForPlots, {derivsForPlotsCE, derivsForPlotsCEAR}}, {i, Length[lightLevels]}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Selection gradient*)
+
+
+vectorPlotsCE = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCE[[i]]], 
+	VectorStyle -> Darker[Gray], VectorColorFunction -> None, VectorPoints -> noExtinctionPointsCE[[i, All, 2;;3]],
+	VectorScale -> {Automatic, Automatic, None}],
+{i, Length[lightLevels]}]
+
+vectorPlotsCEAR = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsCEAR[[i]]], 
+	VectorStyle -> Darker[Gray], VectorColorFunction -> None, VectorPoints -> noExtinctionPointsCEAR[[i, All, 2;;3]],
+	VectorScale -> {Automatic, Automatic, None}],
+{i, Length[lightLevels]}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Extinction points*)
+
+
+{extinctionGraphicsCE, extinctionGraphicsCEAR} = 
+Table[Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, 
+	extinctionPoints[[i, All, 2;;3]]]],
+	{extinctionPoints, {extinctionPointsCE, extinctionPointsCEAR}}, {i, Length[lightLevels]}];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Combine plots with extinction graphics*)
+
+
+plotsCE = MapThread[Show, {preyDensityPlotsCE, vectorPlotsCE, extinctionGraphicsCE}];
+plotsCEAR = MapThread[Show, {preyDensityPlotsCEAR, vectorPlotsCEAR, extinctionGraphicsCEAR}];
 
 
 (* ::Text:: *)
-(*Combine plots and information for export*)
+(*Label combined plots*)
 
 
-Column[{Style["Phototrophic state can also engage in predation\n", {FontSize -> 16, FontFamily -> "Arial", FontColor -> Black}],
-Row[{Grid[
-	(* Some extremely fancy rasterization of the plots without rasterizing their labels (removes the labels, raterizes, and re-adds the labels *)
-	Map[
-		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
-		Append[(FrameLabel /. Options[#])[[All, 1]], Style[(PlotLabel /. Options[#]), 14, TextAlignment -> Center]], {Left, Bottom, Top},
-		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
-	{streamPlotsCE, streamPlotsCEAR}, {2}], 
-Spacings -> {2, 3}], 
+plotLabels = Map[Pane[Style[#, FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], ImageSize -> 160, Alignment -> Left]&,
+	{"(A)", "(B)", "(C)", "(D)", "(E)", "(F)"}];
 
-	(* Legend *)
-	Column[{
-		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
-		PointLegend[{Black, Black}, {"Direction of selection", "Consumer extinction"}, 
-			LegendMarkers -> {Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], Graphics[Rectangle[{0, 0}]]},
-			LegendMarkerSize -> {{75, 75}, {20, 20}}]},
-	Frame -> True, Alignment -> {Center, Center}]}, 
-Spacer[50]],
-Graphics[{Thickness[0.0025], Arrowheads[0.025], Arrow[{{0, 0}, {100, 0}}], Inset[Style["Increasing light", 20], Background -> White]}, ImageSize -> {1200, 50}]},
-Alignment -> Center]
 
-Export["stream_plots_phototroph_eats.pdf", %]
+plotsCE = MapThread[Labeled[#1, #2, {Top, Left}]&, {plotsCE, plotLabels[[1;;3]]}];
+plotsCEAR = MapThread[Labeled[#1, #2, {Top, Left}]&, {plotsCEAR, plotLabels[[4;;6]]}];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Labels for plots*)
+
+
+ylabel = Rotate[Pane[Style["Replication (\[Eta])", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12]], Pi/2];
+xlabel = Pane[Style["Retention (\[Phi])", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], 
+	ImageSize -> 2.5 * 72, Alignment -> {0.2, Center}];
+
+
+(* ::Text:: *)
+(*Row labels*)
+
+
+rowLabels = Map[Rotate[Style[#, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}], 90Degree]&, 
+		{"No tradeoff", "Attack tradeoff"}];
+
+
+(* ::Text:: *)
+(*Arrow showing direction of increasing light*)
+
+
+lightLabel = Graphics[{Thickness[0.0035], Arrowheads[0.025], Line[{{0, 0}, {200, 0}}], Arrow[{{344, 0}, {544, 0}}], 
+Inset[Pane[Style["Increasing light", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], Alignment -> Center]]}];
+
+
+lightLabel = Pane[Show[lightLabel, ImageSize -> 500], Alignment -> 0.38, ImageSize -> 550];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Legend*)
+
+
+(* ::Text:: *)
+(*arrowhead for the legend*)
+
+
+myArrowhead = Graphics[Triangle[{{0, 0}, {-1, -1/4}, {-1, 1/4}}]];
+
+
+legend = Framed[Column[{
+	Pane[Style["Legend", FontSize -> 12, FontFamily -> "Arial", FontWeight -> Bold, FontColor -> Black], 
+		ImageSize -> {72 * 1, 30}, Alignment -> Center],
+		
+	BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", 
+	"TickSide" -> Left,
+	LegendLabel -> Placed[Pane["Prey density (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))", ImageSize -> 72 * 1], Top],
+	LegendMarkerSize -> {24, 144}, LabelStyle -> {Black, "Arial", 12}],
+	
+	PointLegend[{Darker[Gray], Black, Black, Black}, 
+	{Pane["Direction of selection", ImageSize -> 72 * 1],
+		Pane["Consumer extinction", ImageSize -> 72 * 1]}, 
+	LegendMarkers -> {Graphics[{Arrowheads[{{0.35, 1, myArrowhead}}], Arrow[{{0, 0}, {16, 0}}]}, AspectRatio -> 1/8], 
+		Graphics[Rectangle[{0, 0}]]},
+	LegendMarkerSize -> {{32, 16}, 16},
+	LabelStyle -> {Black, "Arial", 12}]},
+			
+	Alignment -> {Center, Center}, Spacings -> 0],
+RoundingRadius -> 10];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Plot compilation*)
+
+
+compiledPlots = Grid[{{Grid[ (* We do a grid of a grid to get around an export glitch *)
+	{Join[{rowLabels[[1]], ylabel}, plotsCE], 
+	Join[{rowLabels[[2]], ylabel}, plotsCEAR],
+	{"", "", xlabel, xlabel, xlabel},
+	{"", "",  lightLabel, SpanFromLeft, SpanFromLeft}},
+	Alignment -> {Center, Center},
+	Spacings -> {{0 (* leftmost space, before grid starts *), Scaled[1/100] (* between row labels and ylabels *),
+			0 (* between ylabels and plots *), Scaled[1/150] (* between plots *), Scaled[1/150] (* between plots *)}, 
+		{0 (* uppermost space, before grid starts *), Scaled[5/144] (* between plots *), 
+		Scaled[1/150] (* between xlabels and plots *), Scaled[1/150] (* between arrow and xlabels *)}}],
+		
+	legend}}, Spacings -> 1]
+
+Export["vector_plots_phototroph_eats.pdf", %]
 
 
 
