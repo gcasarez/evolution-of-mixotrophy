@@ -31,7 +31,7 @@ sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 (*iIn = 25; *)(* Incident light *)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Plot settings*)
 
 
@@ -205,7 +205,7 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Find Stable Equilibria!*)
 
 
@@ -564,7 +564,7 @@ Show[
 ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima}, 
 	PlotStyle -> colorW,
 	Frame -> {True, True, None, None},
-	FrameLabel -> {"Retention probability (\[Phi])", "Prey equilibrium (cells/mL)"},
+	FrameLabel -> {"Retention probability (\[Phi])", "Prey equilibrium (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
 	AspectRatio -> 1/2, ImageSize -> 72 * 4.5, PlotRange -> {0, 26}],
 
 (* This is a way to get the shading between the cycle maxima and minima lines. We should be able to do this within ListLinePlot, but it's glitched. *)
@@ -576,18 +576,18 @@ Show[
 ListLinePlot[{mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, 
 	PlotStyle -> colorM,
 	Frame -> {True, True, None, None},
-	FrameLabel -> {"Retention probability (\[Phi])", "Consumer equilibrium (cells/mL)"},
+	FrameLabel -> {"Retention probability (\[Phi])", "Consumer equilibrium (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
 	AspectRatio -> 1/2, ImageSize -> 72 * 4.5, PlotRange -> {0, 26}],
 
 (* Shade where cycling occurs *)
 Graphics[{Directive[colorM, Opacity[0.1]], Polygon[Flatten[{mixotrophPlotPointsMinima, Reverse[mixotrophPlotPointsMaxima]}, 1]]}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Make final plots*)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Example population dynamics subpanels*)
 
 
@@ -641,7 +641,7 @@ examplePopDynamics = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, att
 examplePopPlots = Table[
 	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
 		PlotRange -> {{0, 200}, {0, 26}},
-		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/mL)"}, 
+		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"}, 
 		PlotStyle -> {colorW, colorM}, 
 		AspectRatio -> 1/2, ImageSize -> 72 * 4.5],
 {i, 2}]
@@ -654,7 +654,7 @@ examplePopPlots = Table[
 fullPopPlots = Table[
 	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
 		PlotRange -> {{0, 4000}, {0, 26}},
-		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/mL)"}, 
+		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"}, 
 		PlotStyle -> {colorW, colorM}, 
 		AspectRatio -> 1/2, ImageSize -> 72 * 5],
 {i, 2}]
@@ -689,7 +689,7 @@ Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Assemble a supplementary figure*)
 
 
@@ -699,6 +699,3 @@ Show[fullPopPlots[[1]], PlotLabel -> Pane["(A)", {72 * 4, 20}],
 Show[fullPopPlots[[2]], PlotLabel -> Pane["(B)", {72 * 4, 20}]]},
 Spacer[5]]
 Export["extended_population_dynamics_from_bifurcation_diagram.pdf", %]
-
-
-
