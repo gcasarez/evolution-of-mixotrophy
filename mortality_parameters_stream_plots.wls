@@ -1,7 +1,7 @@
 #!/usr/bin/env wolframscript
 (* ::Package:: *)
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Parameters*)
 
 
@@ -59,7 +59,7 @@ light = 50;
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCEARhighlP = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6,
+ecoDynamicsCEARhighlP = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6,
 	conversionTradeOff -> True, attackTradeOff -> True]],
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
@@ -71,7 +71,7 @@ ecoDynamicsCEARhighlP = Flatten[ecoDynamicsCEARhighlP, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCEARhighlP = Table[{light, retention, replication, 
+minPopSizesCEARhighlP = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> True]},
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -107,7 +107,7 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 Select[derivsForPlotsCEARhighlP, #[[1]] == {1, 0}&][[All, 2]]
 
 
-Export["higherPhototrophMortalityCEAR.wdx", derivsForPlotsCEARhighlP]
+Export["higherPhototrophMortalityCEAR.wdx", derivsForPlotsCEARhighlP];
 
 
 (* ::Subsection:: *)
@@ -118,7 +118,7 @@ Export["higherPhototrophMortalityCEAR.wdx", derivsForPlotsCEARhighlP]
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCEhighlP = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
+ecoDynamicsCEhighlP = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> False]],
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
@@ -130,7 +130,7 @@ ecoDynamicsCEhighlP = Flatten[ecoDynamicsCEhighlP, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCEhighlP = Table[{light, retention, replication, 
+minPopSizesCEhighlP = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> False]},
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -166,7 +166,7 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 Select[derivsForPlotsCEhighlP, #[[1]] == {1, 0}&][[All, 2]]
 
 
-Export["higherPhototrophMortalityCE.wdx", derivsForPlotsCEhighlP]
+Export["higherPhototrophMortalityCE.wdx", derivsForPlotsCEhighlP];
 
 
 (* ::Section:: *)
@@ -188,7 +188,7 @@ lP = lP2 = 0.15;
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCEARhighlH = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6,
+ecoDynamicsCEARhighlH = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6,
 	conversionTradeOff -> True, attackTradeOff -> True]],
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
@@ -200,7 +200,7 @@ ecoDynamicsCEARhighlH = Flatten[ecoDynamicsCEARhighlH, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCEARhighlH = Table[{light, retention, replication, 
+minPopSizesCEARhighlH = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> True]},
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -236,7 +236,7 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 Select[derivsForPlotsCEARhighlH, #[[1]] == {1, 0}&][[All, 2]]
 
 
-Export["higherHeterotrophMortalityCEAR.wdx", derivsForPlotsCEARhighlH]
+Export["higherHeterotrophMortalityCEAR.wdx", derivsForPlotsCEARhighlH];
 
 
 (* ::Subsection:: *)
@@ -247,7 +247,7 @@ Export["higherHeterotrophMortalityCEAR.wdx", derivsForPlotsCEARhighlH]
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCEhighlH = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
+ecoDynamicsCEhighlH = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> False]],
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
@@ -259,7 +259,7 @@ ecoDynamicsCEhighlH = Flatten[ecoDynamicsCEhighlH, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCEhighlH = Table[{light, retention, replication, 
+minPopSizesCEhighlH = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> False]},
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -295,7 +295,7 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 Select[derivsForPlotsCEhighlH, #[[1]] == {1, 0}&][[All, 2]]
 
 
-Export["higherHeterotrophMortalityCE.wdx", derivsForPlotsCEhighlH]
+Export["higherHeterotrophMortalityCE.wdx", derivsForPlotsCEhighlH];
 
 
 (* ::Section:: *)
@@ -314,7 +314,7 @@ lP = lP2 = 0.25;
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCEARdefault = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6,
+ecoDynamicsCEARdefault = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6,
 	conversionTradeOff -> True, attackTradeOff -> True]],
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
@@ -326,7 +326,7 @@ ecoDynamicsCEARdefault = Flatten[ecoDynamicsCEARdefault, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCEARdefault = Table[{light, retention, replication, 
+minPopSizesCEARdefault = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> True]},
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -370,7 +370,7 @@ Select[derivsForPlotsCEARdefault, #[[1]] == {1, 0}&][[All, 2]]
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsCEdefault = Table[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
+ecoDynamicsCEdefault = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> False]],
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
@@ -382,7 +382,7 @@ ecoDynamicsCEdefault = Flatten[ecoDynamicsCEdefault, {{1,2}, {3}}];
 (*What trait combinations cause the mixotroph population to go extinct, or drop below 10^-6?*)
 
 
-minPopSizesCEdefault = Table[{light, retention, replication, 
+minPopSizesCEdefault = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> False]},
  {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
@@ -422,7 +422,7 @@ Select[derivsForPlotsCEdefault, #[[1]] == {1, 0}&][[All, 2]]
 (*Plots*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Set font*)
 
 
@@ -432,7 +432,7 @@ SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 12, FontFamily -> "Arial"
 SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black, PrivateFontOptions->{"OperatorSubstitution"->False}}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Color scheme (prey density) and legend*)
 
 
@@ -449,21 +449,16 @@ Ticks -> Table[{Log[i + 1], ToString[i]}, {i, {0, 1, 2.5, 5, 10, 15, 25, 40}}],
 LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Set up plot labels*)
 
 
-plotLabels = (*{"(A) High phototroph mortality\nLow heterotroph mortality\nNo tradeoff", 
-"(B) Equal heterotroph and\nphototroph mortality\nNo tradeoff",
-"(C) Low phototroph mortality\nHigh heterotroph mortality\nNo tradeoff",
-"(D) High phototroph mortality\nLow heterotroph mortality\nAttack tradeoff", 
-"(E) Equal heterotroph and\nphototroph mortality\nAttack tradeoff",
-"(F) Low phototroph mortality\nHigh heterotroph mortality\nAttack tradeoff"};*)
-Table[Pane[Style[letter, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300],
+plotLabels = 
+Table[Pane[Style[letter, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 72 * 2.25],
 {letter, {"(A)", "(B)", "(C)", "(D)", "(E)", "(F)"}}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Mark points where the population went extinct with black boxes*)
 
 
@@ -474,7 +469,15 @@ Table[Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Mi
 	extinctionPointsCEARhighlP, extinctionPointsCEARdefault, extinctionPointsCEARhighlH}}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
+(*Collect points where the population didn't go extinct*)
+
+
+noExtinctionPoints = {noExtinctionPointsCEhighlP, noExtinctionPointsCEdefault, noExtinctionPointsCEhighlH, 
+	noExtinctionPointsCEARhighlP, noExtinctionPointsCEARdefault, noExtinctionPointsCEARhighlH};
+
+
+(* ::Subsection::Closed:: *)
 (*Collect derivatives in a list*)
 
 
@@ -482,57 +485,120 @@ derivsForPlots = {derivsForPlotsCEhighlP, derivsForPlotsCEdefault, derivsForPlot
 	derivsForPlotsCEARhighlP, derivsForPlotsCEARdefault, derivsForPlotsCEARhighlH};
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Make plots*)
 
 
-plots = Table[
-Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlots[[i]]], 
-	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
+(* ::Subsubsection::Closed:: *)
+(*Prey density*)
+
+
+preyDensityPlots = Table[Show[Graphics[Inset[
+	Rasterize[ListDensityPlot[Map[{#[[1, 1]], #[[1, 2]], #[[3, 1]]}&, derivsForPlots[[i]]], 
+	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1, 
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
-	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> plotLabels[[i]], ImageSize -> Medium], 
+	PlotRangePadding -> 0, ImagePadding -> 0, ImageMargins -> 0, FrameLabel -> None, Frame -> None]],
 	
-	ListStreamPlot[Map[{#[[1]], #[[2]]}&, derivsForPlots[[i]]], StreamStyle -> Black, StreamColorFunction -> None],
-	
-	extinctionGraphics[[i]]}],
+	{0, 0}, {0, 0}, Scaled[1/1.1]], PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.05, ImagePadding -> Full], 
+	Frame -> True, FrameStyle -> Black, LabelStyle -> {Black, "Arial", 12}, ImageSize -> 72*2.25],
+
 {i, Length[derivsForPlots]}]
 
 
-(* ::Text:: *)
+(* ::Subsubsection::Closed:: *)
+(*Selection gradient*)
+
+
+vectorPlots = Table[ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlots[[i]]], 
+	VectorStyle -> Darker[Gray], VectorColorFunction -> None, VectorPoints -> noExtinctionPoints[[i, All, 2;;3]],
+	VectorScale -> {Automatic, Automatic, None}],
+{i, Length[derivsForPlots]}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Combine plots with extinction graphics*)
+
+
+plots = MapThread[Show, {preyDensityPlots, vectorPlots, extinctionGraphics}];
+
+
+(* ::Subsection:: *)
 (*Combine plots and information for export*)
 
 
-Row[{Grid[
+(* ::Subsubsection::Closed:: *)
+(*Axis labels*)
 
-	(* Row labels *)
-	Join[Map[Rotate[Style[#, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}], 90Degree]&, 
-		{{""}, {"No tradeoff"}, {"Attack tradeoff"}}, {2}],
+
+ylabel = Rotate[Pane[Style["Replication (\[Eta])", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12]], Pi/2]
+xlabel = Pane[Style["Retention (\[Phi])", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], 
+	ImageSize -> 2.5 * 72, Alignment -> {0.2, Center}]
+
+
+(* ::Text:: *)
+(*Row & column labels*)
+
+
+rowLabels = Map[Rotate[Style[#, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}], 90Degree]&, 
+		{"No tradeoff", "Attack tradeoff"}];
+
+
+columnLabels = Map[Style[#, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}]&, 
+		{"", "",  "High phototroph mortality,\nlow heterotroph mortality", "Equal phototroph and\nheterotroph mortality", 
+		"Low phototroph mortality,\nhigh heterotroph mortality"}];
+
+
+(* ::Subsubsection:: *)
+(*Legend*)
+
+
+(* ::Text:: *)
+(*arrowhead for the legend*)
+
+
+myArrowhead = Graphics[Triangle[{{0, 0}, {-1, -1/4}, {-1, 1/4}}]];
+
+
+legend = Framed[Column[{
+	Pane[Style["Legend", FontSize -> 12, FontFamily -> "Arial", FontWeight -> Bold, FontColor -> Black], 
+		ImageSize -> {72 * 1, 30}, Alignment -> Center],
 		
-	(* Column labels *)
-	Join[Map[Style[#, {FontSize -> 14, FontFamily -> "Arial", FontColor -> Black}]&, 
-		{{"High phototroph mortality, low heterotroph mortality", "Equal phototroph and heterotroph mortality", "Low phototroph mortality, high heterotroph mortality"}},
-		{2}],
-	 
-	(* Some extremely fancy rasterization of the plots without rasterizing their labels (removes the labels, raterizes, and re-adds the labels *)
-	Map[
-		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None, ImagePadding -> 1](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
-		Append[(FrameLabel /. Options[#])[[All, 1]], Style[(PlotLabel /. Options[#]), 14, TextAlignment -> Center]], {Left, Bottom, Top},
-		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
-	{plots[[1;;3]], plots[[4;;6]]}, {2}]
-		(* close out the two joinings of row and column labels *)], 2], 
-Spacings -> {2, 3}], 
+	BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", 
+	"TickSide" -> Left,
+	LegendLabel -> Placed[Pane["Prey density (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))", ImageSize -> 72 * 1], Top],
+	LegendMarkerSize -> {24, 144}, LabelStyle -> {Black, "Arial", 12}],
+	
+	PointLegend[{Darker[Gray], Black, Black, Black}, 
+	{Pane["Direction of selection", ImageSize -> 72 * 1],
+		Pane["Consumer extinction", ImageSize -> 72 * 1]}, 
+	LegendMarkers -> {Graphics[{Arrowheads[{{0.35, 1, myArrowhead}}], Arrow[{{0, 0}, {16, 0}}]}, AspectRatio -> 1/8], 
+		Graphics[Rectangle[{0, 0}]]},
+	LegendMarkerSize -> {{32, 16}, 16},
+	LabelStyle -> {Black, "Arial", 12}]},
+			
+	Alignment -> {Center, Center}, Spacings -> 0],
+RoundingRadius -> 10]
 
-	(* Legend *)
-	Column[{
-		BarLegend[{preyDensityColors[#]&, {0, maxPrey}}, LegendLayout -> "Column", LegendLabel -> "Prey density (cells/mL)", LegendMarkerSize -> {25, 450}],
-		PointLegend[{Black, Black}, {"Direction of selection", "Consumer extinction"}, 
-			LegendMarkers -> {Graphics[{Arrowheads[0.5], Arrow[{{0, 0}, {1, 0}}]}], Graphics[Rectangle[{0, 0}]]},
-			LegendMarkerSize -> {{75, 75}, {20, 20}}]},
-	Frame -> True, Alignment -> {Center, Center}]}, 
-Spacer[50]]
 
-Export["stream_plots_varying_mortality.pdf", %]
+(* ::Subsubsection:: *)
+(*Plot compilation*)
+
+
+compiledPlots = Grid[{{Grid[ (* We do a grid of a grid to get around an export glitch *)
+	{columnLabels,
+	Join[{rowLabels[[1]], ylabel}, plots[[1;;3]]], 
+	Join[{rowLabels[[2]], ylabel}, plots[[4;;6]]],
+	{"", "", xlabel, xlabel, xlabel}},
+	Alignment -> {Center, Center},
+	Spacings -> {{0 (* leftmost space, before grid starts *), Scaled[1/100] (* between row labels and ylabels *),
+			0 (* between ylabels and plots *), Scaled[1/150] (* between plots *), Scaled[1/150] (* between plots *)}, 
+		{0 (* uppermost space, before grid starts *), Scaled[1/100] (* between column labels and plots *),
+		Scaled[5/144] (* between plots *), 
+		Scaled[1/150] (* between xlabels and plots *)}}],
+		
+	legend}}, Spacings -> 1]
+
+Export["vector_plots_varying_mortality.pdf", %]
 
 
 

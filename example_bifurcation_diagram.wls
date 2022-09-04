@@ -31,7 +31,7 @@ sigmaC = 0; (* Added sigmaC because it looks like it's not defined here *)
 (*iIn = 25; *)(* Incident light *)
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Plot settings*)
 
 
@@ -493,7 +493,7 @@ mixotrophCycle - ((h + p) /. %) //
 	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Mixotroph min. - (Heterotroph min. + Photroph min.)", "Mixotroph max. - (Heterotroph max. + Photroph max.)"}}]&
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Plot*)
 
 
@@ -564,8 +564,8 @@ Show[
 ListLinePlot[{preyPlotPointsMinima, preyPlotPointsMaxima}, 
 	PlotStyle -> colorW,
 	Frame -> {True, True, None, None},
-	FrameLabel -> {"Retention probability (\[Phi])", "Prey equilibrium (cells/mL)"},
-	AspectRatio -> 1/2, ImageSize -> 350, PlotRange -> {0, 26}],
+	FrameLabel -> {"Retention probability (\[Phi])", "Prey equilibrium (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
+	AspectRatio -> 1/2, ImageSize -> 72 * 4.5, PlotRange -> {0, 26}],
 
 (* This is a way to get the shading between the cycle maxima and minima lines. We should be able to do this within ListLinePlot, but it's glitched. *)
 Graphics[{Directive[colorW, Opacity[0.1]], Polygon[Flatten[{preyPlotPointsMinima, Reverse[preyPlotPointsMaxima]}, 1]]}]]
@@ -576,8 +576,8 @@ Show[
 ListLinePlot[{mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima}, 
 	PlotStyle -> colorM,
 	Frame -> {True, True, None, None},
-	FrameLabel -> {"Retention probability (\[Phi])", "Consumer equilibrium (cells/mL)"},
-	AspectRatio -> 1/2, ImageSize -> 350, PlotRange -> {0, 26}],
+	FrameLabel -> {"Retention probability (\[Phi])", "Consumer equilibrium (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
+	AspectRatio -> 1/2, ImageSize -> 72 * 4.5, PlotRange -> {0, 26}],
 
 (* Shade where cycling occurs *)
 Graphics[{Directive[colorM, Opacity[0.1]], Polygon[Flatten[{mixotrophPlotPointsMinima, Reverse[mixotrophPlotPointsMaxima]}, 1]]}]]
@@ -608,7 +608,7 @@ retentionValues[[{3, 13}]]
 
 markedXaxisTicks = Join[
 	(* Normal tick marks *)
-	Charting`ScaledTicks["Linear"][0, 1, {4, 5}],
+	Charting`FindScaledTicks[Charting`FindTicks[{0, 1},{0, 1}],{Identity,Identity}][0, 1, {4, 5}], (* Replace with Charting`ScaledTicks["Linear"][0, 1, {4, 5}] for Mathematica version < 13 *)
 	(* Gray band at retention probability = 0. 1 *)
 	{{0.1, , {1/2, 0}, Directive[Thickness[0.01], Gray, Opacity[0.5]]},
 	(* At mark "C" at retention probability = 0.1 *)
@@ -641,9 +641,9 @@ examplePopDynamics = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, att
 examplePopPlots = Table[
 	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
 		PlotRange -> {{0, 200}, {0, 26}},
-		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/mL)"}, 
+		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"}, 
 		PlotStyle -> {colorW, colorM}, 
-		AspectRatio -> 1/2, ImageSize -> 350],
+		AspectRatio -> 1/2, ImageSize -> 72 * 4.5],
 {i, 2}]
 
 
@@ -654,9 +654,9 @@ examplePopPlots = Table[
 fullPopPlots = Table[
 	Plot[Evaluate[{w[t], h[t] + p[t]} /. examplePopDynamics[[i, 1]]], {t, 0, 4000},
 		PlotRange -> {{0, 4000}, {0, 26}},
-		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/mL)"}, 
+		Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"}, 
 		PlotStyle -> {colorW, colorM}, 
-		AspectRatio -> 1/2, ImageSize -> 600],
+		AspectRatio -> 1/2, ImageSize -> 72 * 5],
 {i, 2}]
 
 
@@ -670,9 +670,9 @@ fullPopPlots = Table[
 
 finalPlotLegend = Framed[ (* put a frame around the legend *)
 	LineLegend[{colorW, colorM}, {"Prey", "Consumer"}, LegendLabel -> "Population",
-		LabelStyle -> {14, "Arial", Black}], 
+		LabelStyle -> {12, "Arial", Black}], 
 (* frame options *)
-RoundingRadius -> 10, FrameStyle -> {Thin, Black}];
+RoundingRadius -> 10, FrameStyle -> Black];
 
 
 (* ::Text:: *)
@@ -680,11 +680,11 @@ RoundingRadius -> 10, FrameStyle -> {Thin, Black}];
 
 
 Grid[{
-{Show[preyBifurcationPlot, PlotLabel -> Pane["(A)", {300, 20}]], 
+{Show[preyBifurcationPlot, PlotLabel -> Pane["(A)", ImageSize -> {72 * 3.8, 20}]], 
 	(* Add the legend to plot (C), as it has the most empty space *)
-	Show[examplePopPlots[[1]], PlotLabel -> Pane["(C)", {300, 20}], Epilog -> Inset[finalPlotLegend, {160, 19}]]},
-{Show[mixotrophBifurcationPlot, PlotLabel -> Pane["(B)", {300, 20}]],
-	Show[examplePopPlots[[2]], PlotLabel -> Pane["(D)", {300, 20}]]}},
+	Show[examplePopPlots[[1]], PlotLabel -> Pane["(C)", ImageSize -> {72 * 3.8, 20}], Epilog -> Inset[finalPlotLegend, {150, 18}]]},
+{Show[mixotrophBifurcationPlot, PlotLabel -> Pane["(B)", ImageSize -> {72 * 3.8, 20}]],
+	Show[examplePopPlots[[2]], PlotLabel -> Pane["(D)", ImageSize -> {72 * 3.8, 20}]]}},
 Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
 
@@ -694,11 +694,8 @@ Export["bifurcation_diagram.pdf", %]
 
 
 Column[{
-Show[fullPopPlots[[1]], PlotLabel -> Pane["(A)", {600, 20}],
+Show[fullPopPlots[[1]], PlotLabel -> Pane["(A)", {72 * 4, 20}],
 	Epilog -> Inset[finalPlotLegend, {3200, 19}]], (* Add the legend to plot (A), as it has the most empty space *)
-Show[fullPopPlots[[2]], PlotLabel -> Pane["(B)", {600, 20}]]},
+Show[fullPopPlots[[2]], PlotLabel -> Pane["(B)", {72 * 4, 20}]]},
 Spacer[5]]
 Export["extended_population_dynamics_from_bifurcation_diagram.pdf", %]
-
-
-
