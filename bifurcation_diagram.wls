@@ -217,7 +217,7 @@ Return[{ecoDynamics, extinction}]]
 (*We'll show how the equilibrium population changes with the retention probability, by looking across a variety of retention values.*)
 
 
-retentionValues = Table[retention, {retention, 0, 1, 1/20}];
+retentionValues = Table[retention, {retention, 0, 1, 1/100}];
 
 
 (* ::Subsubsection::Closed:: *)
@@ -304,19 +304,19 @@ stabilityColors = Map[If[#, Directive[Blue, Opacity[1]], Directive[Red, Opacity[
 (*Plot all equilibria, colored by stability*)
 
 
-GraphicsRow[{ (* GraphicsRow is unnecessary, I just think it makes viewing these plots a bit nicer. *)
+Row[{ (* Row is unnecessary, I just think it makes viewing these plots a bit nicer. *)
 
 (* Equilibrium prey density *)
 ListPlot[Table[MapThread[Style[{retentionValues[[i]], #1}, #2]&, {w /. duplicatesRemoved[[i]], stabilityColors[[i]]}], {i, Length[candidateStableEquils]}], PlotRange -> All,
-	PlotLabel -> "Prey", AxesLabel -> {"Retention", "Prey"}, ImageSize -> Medium, PlotStyle -> {PointSize -> Medium}],
+	PlotLabel -> "Prey", AxesLabel -> {"Retention", "Prey"}, ImageSize -> 72 * 3, PlotStyle -> {PointSize -> Medium}],
 
 (* Equilibrium heterotroph density *)
 ListPlot[Table[MapThread[Style[{retentionValues[[i]], #1}, #2]&, {h /. duplicatesRemoved[[i]], stabilityColors[[i]]}], {i, Length[candidateStableEquils]}], PlotRange -> All,
-	PlotLabel -> "Heterotroph", AxesLabel -> {"Retention", "Heterotroph"}, ImageSize -> Medium, PlotStyle -> {PointSize -> Medium}],
+	PlotLabel -> "Heterotroph", AxesLabel -> {"Retention", "Heterotroph"}, ImageSize -> 72 * 3, PlotStyle -> {PointSize -> Medium}],
 	
 (* Equilibrium phototroph density *)
 ListPlot[Table[MapThread[Style[{retentionValues[[i]], #1}, #2]&, {p /. duplicatesRemoved[[i]], stabilityColors[[i]]}], {i, Length[candidateStableEquils]}], PlotRange -> All,
-	PlotLabel -> "Phototroph", AxesLabel -> {"Retention", "Phototroph"}, ImageSize -> Medium, PlotStyle -> {PointSize -> Medium}],
+	PlotLabel -> "Phototroph", AxesLabel -> {"Retention", "Phototroph"}, ImageSize -> 72 * 3, PlotStyle -> {PointSize -> Medium}],
 	
 (* Plot legend *)
 PointLegend[{Blue, Directive[Red, Opacity[0.5]]}, {"Stable", "Unstable"}, LegendLabel -> "Equilibrium is...", LabelStyle -> 12, LegendMarkerSize -> Medium]
@@ -404,11 +404,12 @@ MapThread[{#1, #2}&, {retentionNoPositiveEquil,  simulatedPopDynamics[[All, 2]]}
 
 Table[Plot[Evaluate[{w[t], h[t], p[t]}/.simulatedPopDynamics[[i, 1]]], {t, 3000, 4000},
 PlotLabel -> "Retention = " <> ToString[N[retentionNoPositiveEquil[[i]]]], 
-AxesLabel -> {"Time (days)", "Population size"}, ImageSize -> Medium],
+Ticks -> {{3200, 4000}, Automatic},
+AxesLabel -> {"Time (days)", "Population size"}, ImageSize -> 72 * 3.5],
 {i, Length[simulatedPopDynamics]}];
 
 (* This is completely unnecessary. It just arranges things nicely in a grid with a legend. *)
-GraphicsGrid[Partition[
+Grid[Partition[
 	Prepend[%, LineLegend[ColorData[97, "ColorList"][[1;;3]], {"Prey", "Heterotroph", "Phototroph"}, LegendLabel -> "Population", LabelStyle -> 12]], 
 	UpTo[4]]]
 
@@ -444,11 +445,12 @@ simulatedPopDynamicsPositiveEquil = Table[residentEcoDynamics[retention, 2/10, 3
 
 Table[Plot[Evaluate[{w[t], h[t], p[t]}/.simulatedPopDynamicsPositiveEquil[[i, 1]]], {t, 3000, 4000},
 PlotLabel -> "Retention = " <> ToString[N[retentionPositiveEquil[[i]]]], 
-AxesLabel -> {"Time (days)", "Population size"}, ImageSize -> Medium],
+Ticks -> {{3200, 4000}, Automatic},
+AxesLabel -> {"Time (days)", "Population size"}, ImageSize -> 72 * 3.5],
 {i, Length[simulatedPopDynamicsPositiveEquil]}];
 
 (* This is completely unnecessary. It just arranges things nicely in a grid with a legend. *)
-GraphicsGrid[Partition[
+Grid[Partition[
 	Prepend[%, LineLegend[ColorData[97, "ColorList"][[1;;3]], {"Prey", "Heterotroph", "Phototroph"}, LegendLabel -> "Population", LabelStyle -> 12]], 
 	UpTo[4]]]
 
@@ -457,14 +459,18 @@ GraphicsGrid[Partition[
 (*Find the peak and trough of population cycles*)
 
 
+Needs["DifferentialEquations`InterpolatingFunctionAnatomy`"]
+
+
 (* ::Text:: *)
 (*Find the minimum and maximum prey population sizes.*)
 
 
 preyCycle = Table[
-{NMinimize[{w[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
-NMaximize[{w[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
-{i, Length[simulatedPopDynamics]}]
+MinMax[
+	Pick[InterpolatingFunctionValuesOnGrid[(w /. simulatedPopDynamics[[i, 1]])], 
+		Map[# >= 3000&, Flatten[InterpolatingFunctionGrid[(w /. simulatedPopDynamics[[i, 1]])]] ]] ],
+{i, Length[simulatedPopDynamics]}];
 
 
 (* ::Text:: *)
@@ -472,9 +478,11 @@ NMaximize[{w[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGo
 
 
 mixotrophCycle = Table[
-{NMinimize[{(h[t] + p[t])/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
-NMaximize[{(h[t] + p[t])/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
-{i, Length[simulatedPopDynamics]}]
+MinMax[
+	Pick[InterpolatingFunctionValuesOnGrid[(h /. simulatedPopDynamics[[i, 1]])] + 
+			InterpolatingFunctionValuesOnGrid[(p /. simulatedPopDynamics[[i, 1]])], 
+		Map[# >= 3000&, Flatten[InterpolatingFunctionGrid[(h /. simulatedPopDynamics[[i, 1]])]] ]] ],
+{i, Length[simulatedPopDynamics]}];
 
 
 (* ::Text:: *)
@@ -483,17 +491,25 @@ NMaximize[{(h[t] + p[t])/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, A
 
 
 (* Calculate max & min pop. size for heterotroph and phototroph separately *)
-Table[
-population -> {NMinimize[{population[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]],
-NMaximize[{population[t]/.simulatedPopDynamics[[i, 1]], 3000 <= t <= 4000}, t, AccuracyGoal -> 6, PrecisionGoal -> 6][[1]]},
-{i, Length[simulatedPopDynamics]}, {population, {h, p}}];
+heterotrophCycle = Table[
+MinMax[
+	Pick[InterpolatingFunctionValuesOnGrid[(h /. simulatedPopDynamics[[i, 1]])], 
+		Map[# >= 3000&, Flatten[InterpolatingFunctionGrid[(h /. simulatedPopDynamics[[i, 1]])]] ]] ],
+{i, Length[simulatedPopDynamics]}];
+
+phototrophCycle = Table[
+MinMax[
+	Pick[InterpolatingFunctionValuesOnGrid[(p /. simulatedPopDynamics[[i, 1]])], 
+		Map[# >= 3000&, Flatten[InterpolatingFunctionGrid[(p /. simulatedPopDynamics[[i, 1]])]] ]] ],
+{i, Length[simulatedPopDynamics]}];
+
 
 (* Compare to the max. and min. total mixotroph population *)
-mixotrophCycle - ((h + p) /. %) //
+mixotrophCycle - (heterotrophCycle + phototrophCycle) //
 	TableForm[#, TableDirections -> Row, TableHeadings -> {None, {"Mixotroph min. - (Heterotroph min. + Photroph min.)", "Mixotroph max. - (Heterotroph max. + Photroph max.)"}}]&
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Plot*)
 
 
@@ -599,7 +615,7 @@ Graphics[{Directive[colorM, Opacity[0.1]], Polygon[Flatten[{mixotrophPlotPointsM
 (*We'll use a retention probability of 0.1 for the example without cycling and a retention probability of 0.6 for the example with cycling.*)
 
 
-retentionValues[[{3, 13}]]
+retentionValues[[{11, 61}]]
 
 
 (* ::Text:: *)
@@ -631,7 +647,7 @@ mixotrophBifurcationPlot = Show[mixotrophTempBifurcationPlot, FrameTicks -> {mar
 
 
 examplePopDynamics = Table[residentEcoDynamics[retention, 2/10, 35, 4, 1, 1, attackTradeOff -> False, conversionTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6],
-{retention, retentionValues[[{3, 13}]]}];
+{retention, retentionValues[[{11, 61}]]}];
 
 
 (* ::Text:: *)
