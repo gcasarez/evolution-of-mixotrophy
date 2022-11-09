@@ -52,7 +52,11 @@ Map[SetOptions[#, LabelStyle -> {FontSize -> 12, FontFamily -> "Arial", FontColo
 
 
 (* ::Section::Closed:: *)
-(*Model Equations*)
+(*Model equations*)
+
+
+(* ::Text:: *)
+(*Here we model the attack rate tradeoff as a = a_max * ( 1 - (phi + eta)/2 ).*)
 
 
 (* ::Text:: *)
@@ -60,7 +64,7 @@ Map[SetOptions[#, LabelStyle -> {FontSize -> 12, FontFamily -> "Arial", FontColo
 
 
 wDot[w_, hW_, lW_, a_, pW_, kappa_, iIn_, gammaA_, eta_, phi_, eta2_, phi2_, sigmaA_, p_, h_, a2_, h2_, p2_]:= 
-(pW w)/kappa Log[(hW+iIn)/(hW+iIn Exp[-kappa])]-lW w-(a(1-sigmaA (phi eta))) w h-(gammaA a(1-sigmaA (phi eta))) w p-(a2(1-sigmaA (phi2 eta2))) w h2 - (gammaA a2(1-sigmaA (phi2 eta2))) w p2 
+(pW w)/kappa Log[(hW+iIn)/(hW+iIn Exp[-kappa])]-lW w-(a(1-sigmaA (phi + eta)/2)) w h-(gammaA a(1-sigmaA (phi + eta)/2)) w p-(a2(1-sigmaA (phi2 + eta2)/2)) w h2 - (gammaA a2(1-sigmaA (phi2 + eta2)/2)) w p2 
 
 
 (* ::Text:: *)
@@ -68,7 +72,7 @@ wDot[w_, hW_, lW_, a_, pW_, kappa_, iIn_, gammaA_, eta_, phi_, eta2_, phi2_, sig
 
 
 hDot[eta_, c_, gammaC_, kappa_, gammaP_, pW_, sigmaP_, p_, hP_, iIn_, phi_, a_, w_, h_, gammaA_, sigmaA_, lH_, dMax_, sigmaD_]:=
-(1-eta) (c/(gammaC c))((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])] - phi (a(1-sigmaA (phi eta))) w h + (1-phi)c (a(1-sigmaA (phi eta))) w h+ (1-eta) c (gammaA a(1-sigmaA (phi eta))) w p -lH h + (dMax (1-sigmaD eta))p
+(1-eta) (c/(gammaC c))((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])] - phi (a(1-sigmaA (phi + eta)/2)) w h + (1-phi)c (a(1-sigmaA (phi + eta)/2)) w h+ (1-eta) c (gammaA a(1-sigmaA (phi + eta)/2)) w p -lH h + (dMax (1-sigmaD eta))p
 
 
 (* ::Text:: *)
@@ -76,7 +80,7 @@ hDot[eta_, c_, gammaC_, kappa_, gammaP_, pW_, sigmaP_, p_, hP_, iIn_, phi_, a_, 
 
 
 pDot[eta_, gammaP_, sigmaP_, pW_, p_, kappa_, hP_, iIn_, phi_, a_, w_, h_, gammaA_, sigmaA_, gammaC_, sigmaC_, c_, dMax_, sigmaD_, lP_] :=
-eta ((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])]+phi (a(1-sigmaA (phi eta))) w h +eta (gammaA a(1-sigmaA (phi eta))) (gammaC c) p w - (dMax (1-sigmaD eta)) p - lP p
+eta ((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])]+phi (a(1-sigmaA (phi + eta)/2)) w h +eta (gammaA a(1-sigmaA (phi + eta)/2)) (gammaC c) p w - (dMax (1-sigmaD eta)) p - lP p
 
 
 (* ::Text:: *)
@@ -84,7 +88,7 @@ eta ((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[
 
 
 h2Dot[eta2_, c_, gammaC_, gammaP_, sigmaP_, pW_, p2_, kappa_, hP2_, iIn_, phi2_, a2_, w_, h2_, gammaA_, sigmaA_, lH2_, dMax_, sigmaD_] :=
-(1-eta2) (c/(gammaC c))((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]-phi2 (a2(1-sigmaA (phi2 eta2))) w h2 + (1-phi2) c (a2(1-sigmaA (phi2 eta2))) w h2 +(1-eta2) c (gammaA a2(1-sigmaA (phi2 eta2))) w p2 - lH2 h2+ (dMax(1-sigmaD eta2)) p2
+(1-eta2) (c/(gammaC c))((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]-phi2 (a2(1-sigmaA (phi2 + eta2)/2)) w h2 + (1-phi2) c (a2(1-sigmaA (phi2 + eta2)/2)) w h2 +(1-eta2) c (gammaA a2(1-sigmaA (phi2 + eta2)/2)) w p2 - lH2 h2+ (dMax(1-sigmaD eta2)) p2
 
 
 (* ::Text:: *)
@@ -92,7 +96,7 @@ h2Dot[eta2_, c_, gammaC_, gammaP_, sigmaP_, pW_, p2_, kappa_, hP2_, iIn_, phi2_,
 
 
 p2Dot[eta2_, gammaP_, sigmaP_, pW_, p2_, kappa_, hP2_, iIn_, phi2_, a2_, w_, h2_, gammaA_, sigmaA_, c_, gammaC_, sigmaC_, dMax_, sigmaD_, lP2_] :=
-eta2 ((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]+phi2 (a2(1-sigmaA (phi2 eta2))) w h2+eta2 (gammaA a2(1-sigmaA (phi2 eta2))) (gammaC c) p2 w-(dMax(1-sigmaD eta2)) p2-lP2 p2
+eta2 ((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]+phi2 (a2(1-sigmaA (phi2 + eta2)/2)) w h2+eta2 (gammaA a2(1-sigmaA (phi2 + eta2)/2)) (gammaC c) p2 w-(dMax(1-sigmaD eta2)) p2-lP2 p2
 
 
 (* ::Text:: *)
@@ -205,7 +209,7 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Find Stable Equilibria!*)
 
 
@@ -599,7 +603,7 @@ ListLinePlot[{mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima},
 Graphics[{Directive[colorM, Opacity[0.1]], Polygon[Flatten[{mixotrophPlotPointsMinima, Reverse[mixotrophPlotPointsMaxima]}, 1]]}]]
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Make final plots*)
 
 
@@ -676,7 +680,7 @@ fullPopPlots = Table[
 {i, 2}]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Assemble the plots into a figure*)
 
 
@@ -705,7 +709,7 @@ Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Assemble a supplementary figure*)
 
 
@@ -715,3 +719,6 @@ Show[fullPopPlots[[1]], PlotLabel -> Pane["(A)", {72 * 4, 20}],
 Show[fullPopPlots[[2]], PlotLabel -> Pane["(B)", {72 * 4, 20}]]},
 Spacer[5]]
 Export["extended_population_dynamics_from_bifurcation_diagram.pdf", %]
+
+
+
