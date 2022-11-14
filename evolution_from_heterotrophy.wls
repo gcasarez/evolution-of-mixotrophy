@@ -51,7 +51,7 @@ Which[(replication == "NA" && retention == "NA"), "Extinction", (* NAs indicate 
 	replication == 0, (* If replication evolves to 0, the mixotroph is either a heterotroph (does not retain plastid) or a strict kleptoplast (always retains plastid) *)
 	Which[retention == 0, "Strict heterotroph",
 	retention == 1, "Obligately kleptoplastidic mixotroph",
-	0 < retention < 1, "No label"],
+	0 < retention < 1, "Mainly kleptoplastidic mixotroph"],
 	replication == 1, (* If replication evolves to 1, the mixotroph is either a phototroph (does not retain plastid), a kleptoplastidic phototroph (always retains plastid) or an occasional kleptoplastidic phototroph (sometimes retains plastid *)
 	Which[retention == 0, "Strict phototroph",
 	retention > 0, "Facultatively kleptoplastidic phototroph"],
@@ -63,7 +63,7 @@ Which[(replication == "NA" && retention == "NA"), "Extinction", (* NAs indicate 
 
 
 (* outcomeLabels = {"Heterotroph", "Strict Kleptoplast", "Phototroph", "Kleptoplastidic Phototroph", "Occasional Kleptoplastidic Phototroph", "Extinction"}; *)
-outcomeLabels = {(*"Strict kleptoplast", *)"Obligately kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph", "Extinction"};
+outcomeLabels = {(*"Strict kleptoplast", "Obligately kleptoplastidic mixotroph",*) "Mainly kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph", "Extinction"};
 
 
 (* ::Text:: *)
@@ -184,7 +184,7 @@ simEndpointsCEAR = gEvoSimsCEAR[[All, All, 2, 1;;2, -1]];
 outcomesCEAR = Map[classifyOutcome, simEndpointsCEAR, {2}];
 
 
-outcomeCountsCEAR = Outer[Count, outcomesCEAR, outcomeLabels, 1];
+outcomeCountsCEAR = Outer[Count, outcomesCEAR, Append[outcomeLabels, "No label"], 1];
 
 (* Turn the counts into fraction of simulations *)
 outcomeCountsCEAR = outcomeCountsCEAR / Map[Length, outcomesCEAR];
@@ -200,7 +200,7 @@ Map[Total, outcomeCountsCEAR]
 lightLevels = DeleteDuplicates[Flatten[gEvoSimsCEAR[[All, All, 1]]]];
 
 
-conversionAndAttackTradeOffChart = BarChart[outcomeCountsCEAR, ChartLayout -> "Stacked", ChartLegends -> outcomeLabels, ChartStyle -> myColors, 
+conversionAndAttackTradeOffChart = BarChart[outcomeCountsCEAR, ChartLayout -> "Stacked", ChartLegends -> Append[outcomeLabels, "???"], ChartStyle -> Append[myColors, Orange],
 Frame -> {True, True, False, False},
 (* Put the light levels on the x-axis *)
 FrameTicks -> {Table[{i, lightLevels[[i]]}, {i, Length[lightLevels]}], Automatic},
@@ -218,8 +218,8 @@ PlotLabel -> "Attack rate trade-off"] (* This is the title because we're assumin
 
 (* ::Code::Initialization::Bold:: *)
 linePlotLegend = Framed[
-	LineLegend[{myColors[[1]], myColors[[2]], Black}, 
-		{"Obligately klepto. mixotroph", "Facultatively klepto. phototroph", "Extinction"},
+	LineLegend[{myColors[[1]], myColors[[2]], Black, Orange}, 
+		{"Mainly klepto. mixotroph", "Facultatively klepto. phototroph", "Extinction", "???"},
 		(*LegendLabel -> Placed["Endpoint of evolution", Above],*)
 		LegendMarkers -> Automatic, (*LegendMarkerSize -> {15, 6}, *)
 		LegendMargins -> 0, Spacings -> 0.25,
@@ -242,21 +242,21 @@ PlotLabel -> "(A) No tradeoff",
 ImageSize -> 4.4 * 72, LabelStyle -> {Black, 12, "Arial"}]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Attack and conversion trade-offs*)
 
 
-outcomesAndLightCEAR = MapThread[{#1, #2}&, {{lightLevels, lightLevels, lightLevels}, Transpose[outcomeCountsCEAR]}, 2];
+outcomesAndLightCEAR = MapThread[{#1, #2}&, {{lightLevels, lightLevels, lightLevels, lightLevels}, Transpose[outcomeCountsCEAR]}, 2];
 
 
-linePlotCEAR = ListLinePlot[outcomesAndLightCEAR, PlotStyle -> {myColors[[1]], myColors[[2]], Black},
+linePlotCEAR = ListLinePlot[outcomesAndLightCEAR, PlotStyle -> {myColors[[1]], myColors[[2]], Black, Orange},
 PlotMarkers -> Automatic,
 Frame -> True, FrameLabel -> {"Surface light (\[Mu]mol photons/\!\(\*SuperscriptBox[\(m\), \(2\)]\)/s)", ""},
 PlotLabel -> "(B) Attack rate tradeoff",
 LabelStyle -> {Black, 12, "Arial"}, ImageSize -> 4.4 * 72]
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Plot both trade-off variations together*)
 
 
@@ -364,9 +364,10 @@ Export["trajectories_ce.pdf", %]
 
 
 lineColorsCEAR = 
-Map[If[# == "Obligately kleptoplastidic mixotroph", myColors[[1]], 
-	If[# == "Facultatively kleptoplastidic phototroph", myColors[[2]], 
-	Black]]&, 
+Map[If[# == "Mainly kleptoplastidic mixotroph", Directive[myColors[[1]], Thin],
+	If[# == "Facultatively kleptoplastidic phototroph", Directive[myColors[[2]], Thin],
+	If[# == "Extinction", Directive[Black, Thin],
+	If[# == "No label", Orange]]]]&, 
 outcomesCEAR, {2}];
 
 
@@ -376,7 +377,7 @@ outcomesCEAR, {2}];
 
 trajectoryPlotsCEAR = Table[
 ListLinePlot[Transpose[gEvoSimsCEAR[[i, All, 2, 1;;2]], 2 <-> 3],  
-PlotStyle -> Map[Directive[Thin, #]&, lineColorsCEAR[[i]]],
+PlotStyle -> lineColorsCEAR[[i]],
 PlotLabel -> "(" <> letterList[[i - 1]] <> ") Light = " <> ToString[lightLevels[[i]]] (*<> " \[Mu]mol photons/m^2/day"*),
 Frame -> True,(* FrameLabel -> {"Retention prob. (\[Phi])", "Replication prob. (\[Eta])"},*)
 PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.025,
@@ -410,7 +411,8 @@ trajPlotRowsCEAR = Append[trajPlotRowsCEAR, {"", xlabel, xlabel}]; (* xlabels at
 (*Add a legend to the plots*)
 
 
-trajPlotLegend = SwatchLegend[myColors[[1;;2]], {"Obligately kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph"},
+trajPlotLegend = SwatchLegend[Join[myColors[[1;;2]], {Black, Orange}], 
+{"Mainly kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph", "Extinction", "????"},
 LegendLabel -> Style["Endpoint of evolution", 14],
 LabelStyle -> {12, "Arial", Black}];
 
@@ -654,7 +656,7 @@ Labeled[Show[mutantProportionPlot, LabelStyle -> {Black, "Arial", 12}], "(C) Mut
 (*Evolution plots*)
 
 
-evolutionSimsCEexample = Import[NotebookDirectory[] <> "evolutionSimsCE.wdx"];
+evolutionSimsCEexample = Import[NotebookDirectory[] <> "evolution_simsCE.wdx"];
 
 
 gEvoSimsCEexample = GatherBy[SortBy[evolutionSimsCEexample, #[[1]]&], #[[1]]&];
@@ -763,3 +765,73 @@ Export["example_timeseries.pdf", %]
 
 (* ::Text:: *)
 (*The final step is to open this in an image editor and add arrows: between ecology and evolution columns, and pointing from E and F to G. I also moved the legend a bit. This is doable in Mathematica, but sometimes it's not worth the annoyance.*)
+
+
+(* ::Section::Closed:: *)
+(*Some of the simulations look like they reached an ESS (or something?) in the middle of phi-eta space*)
+
+
+(* ::Text:: *)
+(*Import saved simulations*)
+
+
+evolutionSimsCEAR = Import[NotebookDirectory[] <> "evolutionSimsCEAR.wdx"];
+
+
+(* ::Text:: *)
+(*Sort simulations by light level*)
+
+
+gEvoSimsCEAR = GatherBy[SortBy[evolutionSimsCEAR, #[[1]]&], #[[1]]&];
+simEndpointsCEAR = gEvoSimsCEAR[[All, All, 2, 1;;2, -1]];
+
+
+(* ::Text:: *)
+(*Classify simulations*)
+
+
+stoppedInTheMiddleSims = Pick[gEvoSimsCEAR, outcomesCEAR, "No label"];
+
+
+stoppedInTheMiddleLight = stoppedInTheMiddleSims[[All, All, 1]];
+
+
+stoppedInTheMiddlePhiEta = stoppedInTheMiddleSims[[All, All, 2, 1;;2]];
+
+
+Map[ListLinePlot[#, 
+	Frame -> {True, True, False, False}, FrameLabel -> {"Mutations", "Trait"},
+	PlotRange -> {{0, 500}, {0, 1}}]&, 
+	stoppedInTheMiddlePhiEta, {2}]
+
+
+stoppedInTheMiddleExampleEvoPlot = ListLinePlot[stoppedInTheMiddlePhiEta[[5, 1]],
+	PlotRange -> {{0, 500}, {0, 1}},
+	Frame -> {True, True, False, False},
+	FrameLabel -> {"Mutations", "Trait value"},
+	PlotLabel -> "Example of possible new ESS",
+	PlotLegends -> {"Retention", "Replication"},
+	LabelStyle -> {FontSize -> 12, FontColor -> Black, FontFamily -> "Arial"},
+	ImageSize -> 300]
+
+
+stoppedInTheMiddleLight[[5, 1]]
+stoppedInTheMiddlePhiEta[[5, 1, All, -1]]
+
+
+stoppedInTheMiddleExampleEco = residentEcoDynamics[21/25, 19/100, 40, 4, 1, 1, conversionTradeOff -> True, attackTradeOff -> True];
+
+
+stoppedInTheMiddleExampleEcoPlot  = Plot[Evaluate[{w[t], h[t] + p[t]} /. stoppedInTheMiddleExampleEco[[1]]], {t, 3000, 4000},
+Frame -> {True, True, False, False}, FrameLabel -> {"Time (days)", "Population (cells m^-2)"},
+PlotLegends -> {"Prey", "Consumer"},
+PlotLabel -> "Ecological dynamics at end of simulation",
+LabelStyle -> {FontSize -> 12, FontColor -> "Black", FontFamily -> "Arial"},
+ImageSize -> 300]
+
+
+Column[{stoppedInTheMiddleExampleEvoPlot, stoppedInTheMiddleExampleEcoPlot}]
+Export["example_possible_new_ess.pdf", %]
+
+
+
