@@ -1,4 +1,5 @@
 # Code for "Acquired metabolism as an evolutionary path to mixotrophy"
+This repository contains the Mathematica code for the simulations and analyses in the manuscript "Acquired metabolism as an evolutionary path to mixotrophy." To produce the figures in the manuscript, the code was run in Mathematica version 13.
 
 ## Files to produce plots
  * `model_and_functions.wls` contains the model equations and functions to analyze ecological and evolutionary dynamics
