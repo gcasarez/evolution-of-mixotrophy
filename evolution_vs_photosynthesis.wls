@@ -470,7 +470,7 @@ Do[
 					prFix = 0,
 				(* If the mutant didn't go extinct... *)
 					(*  Use mutant's growth rate to approximate the selection coefficient *)
-					selectionCoefficient = (( (h2[growthEstimateDays[[2]]] + p2[growthEstimateDays[[2]]]) / (h2[growthEstimateDays[[1]]] + p2[growthEstimateDays[[2]]]) /. mutantDynamics) - 1) / (growthEstimateDays[[2]] - growthEstimateDays[[1]]);
+					selectionCoefficient = (( (h2[growthEstimateDays[[2]]] + p2[growthEstimateDays[[2]]]) / (h2[growthEstimateDays[[1]]] + p2[growthEstimateDays[[1]]]) /. mutantDynamics) - 1) / (growthEstimateDays[[2]] - growthEstimateDays[[1]]);
 					(* Use the selection coefficient to approximate fixation probability *)
 					prFix = 1 - Exp[-2 * selectionCoefficient];
 					(* If the fixation probability is negative, set it to 0 *)
