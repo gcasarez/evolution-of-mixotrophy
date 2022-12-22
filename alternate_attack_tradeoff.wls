@@ -38,7 +38,7 @@ sigmaC = 0; (* We don't use this, the equations just require it to be defined *)
 
 
 (* ::Text:: *)
-(*Here we model the attack rate tradeoff as a = a_max * ( 1 - (phi + eta)/2 ).*)
+(*Here we model the attack rate tradeoff as a = a_max * ( 1 - (phi * eta) ).*)
 
 
 (* ::Text:: *)
@@ -46,7 +46,7 @@ sigmaC = 0; (* We don't use this, the equations just require it to be defined *)
 
 
 wDot[w_, hW_, lW_, a_, pW_, kappa_, iIn_, gammaA_, eta_, phi_, eta2_, phi2_, sigmaA_, p_, h_, a2_, h2_, p2_]:= 
-(pW w)/kappa Log[(hW+iIn)/(hW+iIn Exp[-kappa])]-lW w-(a(1-sigmaA (phi + eta)/2)) w h-(gammaA a(1-sigmaA (phi + eta)/2)) w p-(a2(1-sigmaA (phi2 + eta2)/2)) w h2 - (gammaA a2(1-sigmaA (phi2 + eta2)/2)) w p2 
+(pW w)/kappa Log[(hW+iIn)/(hW+iIn Exp[-kappa])]-lW w-(a(1-sigmaA (phi * eta))) w h-(gammaA a(1-sigmaA (phi * eta))) w p-(a2(1-sigmaA (phi2 * eta2))) w h2 - (gammaA a2(1-sigmaA (phi2 * eta2))) w p2 
 
 
 (* ::Text:: *)
@@ -54,7 +54,7 @@ wDot[w_, hW_, lW_, a_, pW_, kappa_, iIn_, gammaA_, eta_, phi_, eta2_, phi2_, sig
 
 
 hDot[eta_, c_, gammaC_, kappa_, gammaP_, pW_, sigmaP_, p_, hP_, iIn_, phi_, a_, w_, h_, gammaA_, sigmaA_, lH_, dMax_, sigmaD_]:=
-(1-eta) (c/(gammaC c))((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])] - phi (a(1-sigmaA (phi + eta)/2)) w h + (1-phi)c (a(1-sigmaA (phi + eta)/2)) w h+ (1-eta) c (gammaA a(1-sigmaA (phi + eta)/2)) w p -lH h + (dMax (1-sigmaD eta))p
+(1-eta) (c/(gammaC c))((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])] - phi (a(1-sigmaA (phi * eta))) w h + (1-phi)c (a(1-sigmaA (phi * eta))) w h+ (1-eta) c (gammaA a(1-sigmaA (phi * eta))) w p -lH h + (dMax (1-sigmaD eta))p
 
 
 (* ::Text:: *)
@@ -62,7 +62,7 @@ hDot[eta_, c_, gammaC_, kappa_, gammaP_, pW_, sigmaP_, p_, hP_, iIn_, phi_, a_, 
 
 
 pDot[eta_, gammaP_, sigmaP_, pW_, p_, kappa_, hP_, iIn_, phi_, a_, w_, h_, gammaA_, sigmaA_, gammaC_, sigmaC_, c_, dMax_, sigmaD_, lP_] :=
-eta ((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])]+phi (a(1-sigmaA (phi + eta)/2)) w h +eta (gammaA a(1-sigmaA (phi + eta)/2)) (gammaC c) p w - (dMax (1-sigmaD eta)) p - lP p
+eta ((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[-kappa])]+phi (a(1-sigmaA (phi * eta))) w h +eta (gammaA a(1-sigmaA (phi * eta))) (gammaC c) p w - (dMax (1-sigmaD eta)) p - lP p
 
 
 (* ::Text:: *)
@@ -70,7 +70,7 @@ eta ((gammaP pW + sigmaP eta(pW-gammaP pW)) p)/(kappa) Log[(hP+iIn)/(hP+iIn Exp[
 
 
 h2Dot[eta2_, c_, gammaC_, gammaP_, sigmaP_, pW_, p2_, kappa_, hP2_, iIn_, phi2_, a2_, w_, h2_, gammaA_, sigmaA_, lH2_, dMax_, sigmaD_] :=
-(1-eta2) (c/(gammaC c))((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]-phi2 (a2(1-sigmaA (phi2 + eta2)/2)) w h2 + (1-phi2) c (a2(1-sigmaA (phi2 + eta2)/2)) w h2 +(1-eta2) c (gammaA a2(1-sigmaA (phi2 + eta2)/2)) w p2 - lH2 h2+ (dMax(1-sigmaD eta2)) p2
+(1-eta2) (c/(gammaC c))((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]-phi2 (a2(1-sigmaA (phi2 * eta2))) w h2 + (1-phi2) c (a2(1-sigmaA (phi2 * eta2))) w h2 +(1-eta2) c (gammaA a2(1-sigmaA (phi2 * eta2))) w p2 - lH2 h2+ (dMax(1-sigmaD eta2)) p2
 
 
 (* ::Text:: *)
@@ -78,7 +78,7 @@ h2Dot[eta2_, c_, gammaC_, gammaP_, sigmaP_, pW_, p2_, kappa_, hP2_, iIn_, phi2_,
 
 
 p2Dot[eta2_, gammaP_, sigmaP_, pW_, p2_, kappa_, hP2_, iIn_, phi2_, a2_, w_, h2_, gammaA_, sigmaA_, c_, gammaC_, sigmaC_, dMax_, sigmaD_, lP2_] :=
-eta2 ((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]+phi2 (a2(1-sigmaA (phi2 + eta2)/2)) w h2+eta2 (gammaA a2(1-sigmaA (phi2 + eta2)/2)) (gammaC c) p2 w-(dMax(1-sigmaD eta2)) p2-lP2 p2
+eta2 ((gammaP pW + sigmaP eta2(pW-gammaP pW)) p2)/(kappa) Log[(hP2+iIn)/(hP2+iIn Exp[-kappa])]+phi2 (a2(1-sigmaA (phi2 * eta2))) w h2+eta2 (gammaA a2(1-sigmaA (phi2 * eta2))) (gammaC c) p2 w-(dMax(1-sigmaD eta2)) p2-lP2 p2
 
 
 (* ::Text:: *)
@@ -342,7 +342,7 @@ Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
 (* ::Text:: *)
-(*Retention and replication additively decrease attack rate*)
+(*Retention and replication multiplicatively decrease attack rate*)
 
 
 lightLevels = {25, 35, 50};
@@ -352,43 +352,43 @@ lightLevels = {25, 35, 50};
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsAdditiveAR = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
+ecoDynamicsAlternativeAR = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
 {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
 
-ecoDynamicsAdditiveAR = Flatten[ecoDynamicsAdditiveAR, {{1}, {2,3}, {4}}];
+ecoDynamicsAlternativeAR = Flatten[ecoDynamicsAlternativeAR, {{1}, {2,3}, {4}}];
 
 
 (* ::Subsection::Closed:: *)
 (*What light/trait combinations cause the mixotroph population to go extinct?*)
 
 
-minPopSizesAdditiveAR = ParallelTable[{light, retention, replication, 
+minPopSizesAlternativeAR = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> True]},
  {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
 
-minPopSizesAdditiveAR = Flatten[minPopSizesAdditiveAR, {{1}, {2, 3}}];
+minPopSizesAlternativeAR = Flatten[minPopSizesAlternativeAR, {{1}, {2, 3}}];
 
 
-extinctionPointsAdditiveAR = Map[Select[#[[4]] <= 10^-6&], minPopSizesAdditiveAR];
+extinctionPointsAlternativeAR = Map[Select[#[[4]] <= 10^-6&], minPopSizesAlternativeAR];
 
 
 (* ::Text:: *)
 (*Where does the population not go extinct?*)
 
 
-noExtinctionPointsAdditiveAR = Pick[ecoDynamicsAdditiveAR, Map[#[[4]] > 10^-6&, minPopSizesAdditiveAR, {2}]];
+noExtinctionPointsAlternativeAR = Pick[ecoDynamicsAlternativeAR, Map[#[[4]] > 10^-6&, minPopSizesAlternativeAR, {2}]];
 
 
 (* ::Subsection::Closed:: *)
 (*Find the derivative of invasion fitness at the points where the resident is not extinct*)
 
 
-derivsForPlotsAdditiveAR = 
+derivsForPlotsAlternativeAR = 
 ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]], #[[6]], #[[7]], PrecisionGoal -> 6, AccuracyGoal -> 6, MaxSteps -> 40000, conversionTradeOff -> True, attackTradeOff -> True],
-{#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsAdditiveAR, {2}];
+{#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsAlternativeAR, {2}];
 
 
 (* ::Text:: *)
@@ -396,13 +396,13 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 
 
 Table[
-Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlotsAdditiveAR[[i]]], 
-	VectorPoints -> noExtinctionPointsAdditiveAR[[i, All, 2;;3]],
+Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlotsAlternativeAR[[i]]], 
+	VectorPoints -> noExtinctionPointsAlternativeAR[[i, All, 2;;3]],
 	ColorFunction -> "Pastel", VectorStyle -> Black, PlotLegends -> Automatic, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
 	PlotLabel -> "Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium, VectorScale -> {Automatic, Automatic, None}], 
 	
-	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsAdditiveAR[[i, All, 2;;3]]]]],
-{i, Length[derivsForPlotsAdditiveAR]}]
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsAlternativeAR[[i, All, 2;;3]]]]],
+{i, Length[derivsForPlotsAlternativeAR]}]
 
 
 (* ::Section::Closed:: *)
@@ -410,7 +410,7 @@ Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlots
 
 
 (* ::Subsection::Closed:: *)
-(*Load the model for the original attack trade-off (retention and replication multiplicatively decrease attack rate)*)
+(*Load the model for the original attack trade-off (retention and replication additively decrease attack rate)*)
 
 
 Get[NotebookDirectory[] <> "model_and_functions.wls"]
@@ -420,43 +420,43 @@ Get[NotebookDirectory[] <> "model_and_functions.wls"]
 (*Find the average prey, heterotroph, and phototroph densities across a range of retention and replication levels*)
 
 
-ecoDynamicsMultiplicativeAR = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
+ecoDynamicsOriginalAR = ParallelTable[Join[{light, retention, replication}, averageEcoState[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
 {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
 
-ecoDynamicsMultiplicativeAR = Flatten[ecoDynamicsMultiplicativeAR, {{1}, {2,3}, {4}}];
+ecoDynamicsOriginalAR = Flatten[ecoDynamicsOriginalAR, {{1}, {2,3}, {4}}];
 
 
 (* ::Subsection::Closed:: *)
 (*What light/trait combinations cause the mixotroph population to go extinct?*)
 
 
-minPopSizesMultiplicativeAR = ParallelTable[{light, retention, replication, 
+minPopSizesOriginalAR = ParallelTable[{light, retention, replication, 
 	minimumMixotroph[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, 
 	conversionTradeOff -> True, attackTradeOff -> True]},
  {light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
 
 
-minPopSizesMultiplicativeAR = Flatten[minPopSizesMultiplicativeAR, {{1}, {2, 3}}];
+minPopSizesOriginalAR = Flatten[minPopSizesOriginalAR, {{1}, {2, 3}}];
 
 
-extinctionPointsMultiplicativeAR = Map[Select[#[[4]] <= 10^-6&], minPopSizesMultiplicativeAR];
+extinctionPointsOriginalAR = Map[Select[#[[4]] <= 10^-6&], minPopSizesOriginalAR];
 
 
 (* ::Text:: *)
 (*Where does the population not go extinct?*)
 
 
-noExtinctionPointsMultiplicativeAR = Pick[ecoDynamicsMultiplicativeAR, Map[#[[4]] > 10^-6&, minPopSizesMultiplicativeAR, {2}]];
+noExtinctionPointsOriginalAR = Pick[ecoDynamicsOriginalAR, Map[#[[4]] > 10^-6&, minPopSizesOriginalAR, {2}]];
 
 
 (* ::Subsection::Closed:: *)
 (*Find the derivative of invasion fitness at the points where the resident is not extinct*)
 
 
-derivsForPlotsMultiplicativeAR = 
+derivsForPlotsOriginalAR = 
 ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]], #[[6]], #[[7]], PrecisionGoal -> 6, AccuracyGoal -> 6, MaxSteps -> 40000, conversionTradeOff -> True, attackTradeOff -> True],
-{#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsMultiplicativeAR, {2}];
+{#[[5]], #[[6]], #[[7]]}}&, noExtinctionPointsOriginalAR, {2}];
 
 
 (* ::Text:: *)
@@ -464,13 +464,13 @@ ParallelMap[{{#[[2]], #[[3]]}, invasionDerivatives[#[[2]], #[[3]], #[[1]], #[[5]
 
 
 Table[
-Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlotsMultiplicativeAR[[i]]], 
-	VectorPoints -> noExtinctionPointsMultiplicativeAR[[i, All, 2;;3]],
+Show[ListVectorDensityPlot[Map[{#[[1]], {#[[2]], Norm[#[[2]]]}}&, derivsForPlotsOriginalAR[[i]]], 
+	VectorPoints -> noExtinctionPointsOriginalAR[[i, All, 2;;3]],
 	ColorFunction -> "Pastel", VectorStyle -> Black, PlotLegends -> Automatic, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
 	PlotLabel -> "Surface light = " <> ToString[lightLevels[[i]]] <> " \[Mu]mol photons/m^2/s", ImageSize -> Medium, VectorScale -> {Automatic, Automatic, None}], 
 	
-	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsMultiplicativeAR[[i, All, 2;;3]]]]],
-{i, Length[derivsForPlotsMultiplicativeAR]}]
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsOriginalAR[[i, All, 2;;3]]]]],
+{i, Length[derivsForPlotsOriginalAR]}]
 
 
 (* ::Section::Closed:: *)
@@ -557,7 +557,7 @@ Show[ListStreamDensityPlot[Map[{#[[1]], {#[[2]], #[[3,1]]}}&, derivsForPlotsCE[[
 (*Plot prey density and selection gradient*)
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Set up plot properties*)
 
 
@@ -568,8 +568,8 @@ Show[ListStreamDensityPlot[Map[{#[[1]], {#[[2]], #[[3,1]]}}&, derivsForPlotsCE[[
 ClearAll[preyDensityColors]
 
 
-maxPrey = Max[{noExtinctionPointsAdditiveAR[[All, All, 5]], 
-	noExtinctionPointsMultiplicativeAR[[All, All, 5]], noExtinctionPointsCE[[All, All, 5]]}];
+maxPrey = Max[{noExtinctionPointsAlternativeAR[[All, All, 5]], 
+	noExtinctionPointsOriginalAR[[All, All, 5]], noExtinctionPointsCE[[All, All, 5]]}];
 
 
 preyDensityColors[p_] := ColorData[{"BeachColors", "Reverse"}][Log[(p + 1)]/Log[maxPrey + 1]];
@@ -585,44 +585,44 @@ SetOptions[ListDensityPlot, LabelStyle -> {FontSize -> 28, FontFamily -> "Arial"
 SetOptions[{SwatchLegend, PointLegend, BarLegend}, LabelStyle -> {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}];
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Make individual plots*)
 
 
 (* ::Subsubsection::Closed:: *)
-(*Alternative (additive) attack trade-off*)
+(*Alternative (multiplicative) attack trade-off*)
 
 
-streamPlotsAdditiveAR = Table[
-Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsAdditiveAR[[i]]], 
+streamPlotsAlternativeAR = Table[
+Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsAlternativeAR[[i]]], 
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
-	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + 2 * Length[lightLevels]]]] <> ")", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
+	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + 2* Length[lightLevels]]]] <> ")", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
 	
-	ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsAdditiveAR[[i]]], VectorColorFunction -> None, VectorStyle -> Black, 
-	VectorPoints -> noExtinctionPointsAdditiveAR[[i, All, 2;;3]]],
+	ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsAlternativeAR[[i]]], VectorColorFunction -> None, VectorStyle -> Black, 
+	VectorPoints -> noExtinctionPointsAlternativeAR[[i, All, 2;;3]]],
 	
-	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsAdditiveAR[[i, All, 2;;3]]]]}],
-{i, Length[derivsForPlotsAdditiveAR]}];
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsAlternativeAR[[i, All, 2;;3]]]]}],
+{i, Length[derivsForPlotsAlternativeAR]}];
 
 
 (* ::Subsubsection::Closed:: *)
-(*Original (multiplicative) attack trade-off*)
+(*Original (additive) attack trade-off*)
 
 
-streamPlotsMultiplicativeAR = Table[
-Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsMultiplicativeAR[[i]]], 
+streamPlotsOriginalAR = Table[
+Show[{ListDensityPlot[Map[{#[[1, 1]], #[[1,2]], #[[3, 1]]}&, derivsForPlotsOriginalAR[[i]]], 
 	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1,
 	ColorFunction -> preyDensityColors, ColorFunctionScaling -> False,
 	FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"},
 	PlotLabel -> Pane[Style["(" <> Capitalize[Alphabet[][[i + Length[lightLevels]]]] <> ")", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black}], ImageSize -> 300], ImageSize -> Medium], 
 	
-	ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsMultiplicativeAR[[i]]], VectorStyle -> Black, VectorColorFunction -> None,
-	VectorPoints -> noExtinctionPointsMultiplicativeAR[[i, All, 2;;3]]],
+	ListVectorPlot[Map[{#[[1]], #[[2]]}&, derivsForPlotsOriginalAR[[i]]], VectorStyle -> Black, VectorColorFunction -> None,
+	VectorPoints -> noExtinctionPointsOriginalAR[[i, All, 2;;3]]],
 	
-	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsMultiplicativeAR[[i, All, 2;;3]]]]}],
-{i, Length[derivsForPlotsMultiplicativeAR]}];
+	Graphics[Map[Rectangle[{Max[#[[1]] - 1/10, 0], Max[#[[2]] - 1/10, 0]}, {Min[#[[1]] + 1/10, 1], Min[#[[2]] + 1/10, 1]}]&, extinctionPointsOriginalAR[[i, All, 2;;3]]]]}],
+{i, Length[derivsForPlotsOriginalAR]}];
 
 
 (* ::Subsubsection::Closed:: *)
@@ -655,7 +655,7 @@ Column[{Row[{Grid[
 
 	(* Row labels *)
 	Join[Map[Rotate[Style[#, {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black, TextAlignment -> Center}], 90Degree]&, 
-		{{"", ""}, {"No tradeoff", "Replication probability (\[Eta])"}, {"Multiplicative Attack tradeoff", "Replication probability (\[Eta])"}, {"Additive Attack tradeoff", "Replication probability (\[Eta])"}, {"", ""}}, {2}],
+		{{"", ""}, {"No tradeoff", "Replication probability (\[Eta])"}, {"Additive Attack tradeoff", "Replication probability (\[Eta])"}, {"Multiplicative Attack tradeoff", "Replication probability (\[Eta])"}, {"", ""}}, {2}],
 		
 	(* Column labels *)
 	Join[Map[Style[#, {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black, TextAlignment -> Center}]&, 
@@ -667,7 +667,7 @@ Column[{Row[{Grid[
 		Labeled[Rasterize[Show[#, FrameLabel -> None, PlotLabel -> None](*, RasterSize \[Rule] 500*), ImageSize -> Medium], 
 		(*Append[(FrameLabel /. Options[#])[[All, 1]], *)Style[(PlotLabel /. Options[#]), TextAlignment -> Center](*]*), Top(*{Left, Bottom, Top}*),
 		LabelStyle -> Append[(LabelStyle /. Options[#]), (TextAlignment -> Center)], RotateLabel -> True]&,
-	{streamPlotsCE, streamPlotsMultiplicativeAR, streamPlotsAdditiveAR}, {2}],
+	{streamPlotsCE, streamPlotsOriginalAR, streamPlotsAlternativeAR}, {2}],
 
 	(* Finish up adding the row and column labels *)	
 	{Table[Style["Retention probability (\[Phi])", {FontSize -> 28, FontFamily -> "Arial", FontColor -> Black, TextAlignment -> Center}], {i, 3}]}], 2],
@@ -691,12 +691,18 @@ Export["Alternate_attack_tradeoff.pdf", %]
 (*Plot the attack rate at each point for both trade-offs*)
 
 
-Row[{ContourPlot[1 - phi * eta, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "(A) Multiplicative trade-off", 
-	ColorFunction -> "GrayTones", ColorFunctionScaling -> None, LabelStyle -> {Black, "Arial", 18}, ImageSize -> 400, Contours -> Range[0, 1, 1/10]],
+Grid[{{ContourPlot[1 - (phi + eta)/2, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "(A) Additive tradeoff", 
+	ColorFunction -> "GrayTones", ColorFunctionScaling -> None, LabelStyle -> {Black, "Arial", 12}, ImageSize -> 72 * 3, Contours -> Range[0, 1, 1/10]],
 	
-ContourPlot[1 - (phi + eta)/2, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "(B) Additive trade-off", 
-	ColorFunction -> "GrayTones", ColorFunctionScaling -> None, LabelStyle -> {Black, "Arial", 18}, ImageSize -> 400, Contours -> Range[0, 1, 1/10]],
+ContourPlot[1 - phi * eta, {phi, 0, 1}, {eta, 0, 1}, FrameLabel -> {"Retention Probability (\[Phi])", "Replication Probability (\[Eta])"}, PlotLabel -> "(B) Multiplicative tradeoff", 
+	ColorFunction -> "GrayTones", ColorFunctionScaling -> None, LabelStyle -> {Black, "Arial", 12}, ImageSize -> 72 * 3, Contours -> Range[0, 1, 1/10]]},
 	
-BarLegend["GrayTones", Range[0, 1, 1/10], LegendLabel -> "Fraction of maximum\nattack rate", LabelStyle -> {Black, "Arial", 18}, LegendMarkerSize -> 300]}, Spacer[20]]
+{BarLegend["GrayTones", Range[0, 1, 1/10], LegendLabel -> Placed["Fraction of maximum attack rate", Bottom], LabelStyle -> {Black, "Arial", 12}, 
+	LegendMarkerSize -> 72 * 4, LegendLayout -> "Row"], 
+
+SpanFromLeft}}, Spacings -> {2, Automatic}]
 
 Export["Attack_rate_vs_tradeoff.pdf", %]
+
+
+
