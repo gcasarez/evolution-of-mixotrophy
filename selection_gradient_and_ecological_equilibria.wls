@@ -289,14 +289,37 @@ fkpRegionsCE = Map[Graphics[{FaceForm[], EdgeForm[{Thickness[0.03], Black}],
 
 
 (* ::Subsubsection::Closed:: *)
-(*Attack trade-off*)
+(*Attack trade-off, obligately kleptoplastidic mixotrophy*)
 
 
 (* ::Text:: *)
-(*Marker for obligately kleptoplastidic phototrophy (retention = 1, replication = 0)*)
+(*Marker for ESS where retention > 0, replication = 0*)
 
 
-okpPoint = Graphics[{Thickness[0.03], Black, Circle[{1, 0}, 0.07]}];
+(* ::Text:: *)
+(*Use interpolation to find a function for d fitness / d retention when replication = 0*)
+
+
+dFitdPhiInterpolation = Table[Interpolation[Select[derivsForPlotsCEAR[[2]], #[[1, 2]] == 0&][[All, 1;;2, 1]]],
+	{i, Length[derivsForPlotsCEAR]}];
+
+
+(* ::Text:: *)
+(*ESS is at the point where d fitness / d retention = 0*)
+
+
+okpPhiValue = Map[phi /. FindRoot[#[phi], {phi, 0.9}]&, dFitdPhiInterpolation];
+
+
+(* ::Text:: *)
+(*Draw a circle at the ESS*)
+
+
+okpPoint = Map[Graphics[{Thickness[0.03], Black, Circle[{#, 0}, 0.07]}]&, okpPhiValue];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Attack tradeoff, facultatively kleptoplastidic mixotrophy*)
 
 
 (* ::Text:: *)
@@ -308,6 +331,27 @@ fkpESSpointsCEAR = Table[
 		(Chop[#[[2, 1]], 10^-1] == 0) (* no selection on retention *) && 
 		(#[[2, 2]] > 0) (* positive selection on replication *)&][[All, 1, 1]],
 	{i, Length[derivsForPlotsCEAR]}];
+
+
+(* ::Text:: *)
+(*Find the points where replication = 1 and the consumer goes extinct*)
+
+
+extinctionAtReplication1 = Table[Select[extinctionPointsCEAR[[i]], #[[3]] == 1&][[All, 2]], {i, Length[extinctionPointsCEAR]}];
+
+
+(* ::Text:: *)
+(*Remove extinction points from FKP ESS points*)
+
+
+fkpESSpointsCEAR = MapThread[Complement, {fkpESSpointsCEAR, extinctionAtReplication1}];
+
+
+(* ::Text:: *)
+(*Check that the ESS exists -- i.e. whether there are any retention probabilities where replication = 1 is an ESS*)
+
+
+fkpESSexists = Map[Length[#] > 0&, fkpESSpointsCEAR];
 
 
 (* ::Text:: *)
@@ -328,9 +372,12 @@ maxSurvivableRetention = Table[Min[Select[extinctionPointsCEAR[[i]], #[[3]] == 1
 (*Draw rectangles marking the region where relication = 1 is an ESS*)
 
 
-fkpRegionsCEAR = MapThread[Graphics[{FaceForm[], EdgeForm[{Thickness[0.03], Black}], 
-	Rectangle[{Max[#1[[1]] - 1/20, 0], 1.015}, {Min[#1[[2]] + 1/20, #2], 1.085}, RoundingRadius -> 0.035]}]&, 
-	{fkpESSrangeCEAR, maxSurvivableRetention}];
+fkpRegionsCEAR = MapThread[If[#2, 
+	Graphics[{FaceForm[], EdgeForm[{Thickness[0.03], Black}], 
+		Rectangle[{Max[#1[[1]] - 1/20, 0], 1.015}, {Min[#1[[2]] + 1/20, 1], 1.085}, RoundingRadius -> 0.035]}],
+	Graphics[] (* Draw nothing if fkp is not an ESS*)
+	]&, 
+	{fkpESSrangeCEAR, fkpESSexists}];
 
 
 (* ::Subsection::Closed:: *)
@@ -378,8 +425,8 @@ legend = Framed[Column[{
 	PointLegend[{Darker[Gray], Black, Black, Black}, 
 	{Pane["Direction of selection", ImageSize -> 72 * 1.4],
 		Pane["Consumer extinction", ImageSize -> 72 * 1.4],
-		Pane["ESS: Obligately kleptoplastidic phototrophy", ImageSize -> 72 * 1.4],
-		Pane["ESS: Facultatively kleptoplastidic phototrophy", ImageSize -> 72 * 1.4]}, 
+		Pane["ESS: Obligate kleptoplasty", ImageSize -> 72 * 1.4],
+		Pane["ESS: Facultative kleptoplasty", ImageSize -> 72 * 1.4]}, 
 	LegendMarkers -> {Graphics[{Arrowheads[{{0.35, 1, myArrowhead}}], Arrow[{{0, 0}, {16, 0}}]}, AspectRatio -> 1/8], 
 		Graphics[Rectangle[{0, 0}]],
 		Graphics[{FaceForm[], Disk[]}], 
