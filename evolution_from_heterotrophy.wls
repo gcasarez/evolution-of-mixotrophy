@@ -201,14 +201,14 @@ PlotLabel -> "Attack rate trade-off"] (* This is the title because we're assumin
 (*Plot endpoint of evolution vs light*)
 
 
-(* ::Subsection::Closed:: *)
+(* ::Subsection:: *)
 (*Legend*)
 
 
 (* ::Code::Initialization::Bold:: *)
 linePlotLegend = Framed[
 	LineLegend[{myColors[[1]], myColors[[2]], Black}, 
-		{"Mainly klepto. mixotroph", "Facultatively klepto. phototroph", "Extinction"},
+		{"Obligate kleptoplasty", "Facultative kleptoplasty", "Extinction"},
 		(*LegendLabel -> Placed["Endpoint of evolution", Above],*)
 		LegendMarkers -> Automatic, (*LegendMarkerSize -> {15, 6}, *)
 		LegendMargins -> 0, Spacings -> 0.25,
@@ -326,7 +326,7 @@ trajPlotRowsCE = Append[trajPlotRowsCE, {"", xlabel, xlabel}]; (* xlabels at the
 (*Add a legend to the plots*)
 
 
-trajPlotLegend = SwatchLegend[{myColors[[1]], myColors[[2]], Black}, {"Mainly kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph", "Extinction"},
+trajPlotLegend = SwatchLegend[{myColors[[1]], myColors[[2]], Black}, {"Obligate kleptoplasty", "Facultative kleptoplasty", "Extinction"},
 LegendLabel -> Style["Endpoint of evolution", 14],
 LabelStyle -> {12, "Arial", Black}];
 
@@ -402,7 +402,7 @@ trajPlotRowsCEAR = Append[trajPlotRowsCEAR, {"", xlabel, xlabel}]; (* xlabels at
 
 
 trajPlotLegend = SwatchLegend[Append[myColors[[1;;2]], Black], 
-{"Mainly kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph", "Extinction"},
+{"Obligate kleptoplasty", "Facultative kleptoplasty", "Extinction"},
 LegendLabel -> Style["Endpoint of evolution", 14],
 LabelStyle -> {12, "Arial", Black}];
 
@@ -690,7 +690,7 @@ traitSpacePlot = ListLinePlot[Transpose[exampleSim[[2, 1;;2]]],
 	ImageSize -> 72 * 2.8, AspectRatio -> 3.25/4]
 
 
-(* ::Subsubsection::Closed:: *)
+(* ::Subsubsection:: *)
 (*Find and plot the "equilibrium" population sizes over evolutionary time*)
 
 
@@ -711,6 +711,38 @@ PlotRange -> {{0, 500}, {0, 17}}, PlotRangePadding -> 0,
 Frame -> True, FrameLabel -> {"Time (mutations)", "Pop. size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
 LabelStyle -> {12, Black, "Arial"},
 	ImageSize -> 72 * 2.8, AspectRatio -> 3.25/4]
+
+
+(* ::Subsubsection:: *)
+(*Show that the "dip" in prey population size is due to the start of cycling*)
+
+
+Needs["DifferentialEquations`InterpolatingFunctionAnatomy`"]
+
+
+minMaxPopSizes = ParallelTable[Module[{residentEcology, extinction, retention = exampleSim[[2, 1, i]], replication = exampleSim[[2, 1, i]]}, 
+	{residentEcology, extinction} = residentEcoDynamics[retention, replication, 35, 4, 1, 1, 
+		conversionTradeOff -> True, attackTradeOff -> False, PrecisionGoal -> 6, AccuracyGoal -> 6];
+		
+	If[extinction, {"Unknown", 0},
+		MinMax[Pick[InterpolatingFunctionValuesOnGrid[(w /. residentEcology)], 
+			Map[# >= 3000&, Flatten[InterpolatingFunctionGrid[(w /. residentEcology)]]] ]]] ],
+			
+{i, Length[exampleSim[[2, 1]]]}];
+
+
+Show[ListLinePlot[Transpose[minMaxPopSizes], PlotRange -> Full, PlotStyle -> {Directive[Dotted, colorW], Directive[Dashed, colorW]},
+	Frame -> True, FrameLabel -> {"Time (mutations)", "Prey pop. size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
+	LabelStyle -> {FontSize -> 12, FontColor -> Black, FontFamily -> "Arial"}],
+ListLinePlot[averagePopSizes[[All, 1]], PlotStyle -> colorW, PlotRange -> Full,
+PlotLegends -> Placed[LineLegend[{colorW, Directive[Dotted, colorW], Directive[Dashed, colorW]}, {"Average prey", "Min. prey", "Max. prey"}], {0.75, 0.5}]]]
+
+
+Export["prey_pop_cycling_and_avg_pop_size.pdf", %]
+
+
+(* ::Subsubsection:: *)
+(*Prey extinction*)
 
 
 (* ::Text:: *)
