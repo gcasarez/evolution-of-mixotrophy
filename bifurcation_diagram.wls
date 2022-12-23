@@ -209,7 +209,7 @@ If[extinction == False,
 Return[{ecoDynamics, extinction}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Find Stable Equilibria!*)
 
 
@@ -603,7 +603,48 @@ ListLinePlot[{mixotrophPlotPointsMinima, mixotrophPlotPointsMaxima},
 Graphics[{Directive[colorM, Opacity[0.1]], Polygon[Flatten[{mixotrophPlotPointsMinima, Reverse[mixotrophPlotPointsMaxima]}, 1]]}]]
 
 
-(* ::Section:: *)
+(* ::Subsubsection::Closed:: *)
+(*Average prey vs. minima & maxima*)
+
+
+(* ::Text:: *)
+(*For response to reviewer*)
+
+
+(* ::Text:: *)
+(*Find the average prey population size.*)
+
+
+averagePreyCycle = Table[Module[{peaks, integrationRange},
+	peaks = Pick[Flatten[InterpolatingFunctionGrid[(w /. simulatedPopDynamics[[i, 1]])]], 
+		PeakDetect[InterpolatingFunctionValuesOnGrid[(w /. simulatedPopDynamics[[i, 1]])]], 1]; (* all population peaks *)
+	integrationRange = Select[peaks, # >= 3000&][[{1, -1}]]; (* the first and last peaks between days 3000 and 4000 *)
+	(* Average pop. size over a whole number of cycles *)
+	NIntegrate[(w[t] /. simulatedPopDynamics[[i, 1]]), 
+		{t, integrationRange[[1]], integrationRange[[2]]}]/(integrationRange[[2]] - integrationRange[[1]])],
+{i, Length[simulatedPopDynamics]}];
+
+
+averagePreyCycleVsRetention = MapThread[{#1, #2}&, {retentionNoPositiveEquil, averagePreyCycle}];
+
+
+averagePreyPlotPoints = Join[preyPositiveEquilVsRetention, averagePreyCycleVsRetention];
+
+
+avgPreyPlot = 
+ListLinePlot[{averagePreyPlotPoints, preyPlotPointsMinima, preyPlotPointsMaxima}, 
+	PlotStyle -> {colorW, Directive[colorW, Dotted], Directive[colorW, Dashed]},
+	Frame -> {True, True, None, None},
+	FrameLabel -> {"Retention probability (\[Phi])", "Prey pop. size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
+	AspectRatio -> 1/2, ImageSize -> 72 * 4.5, PlotRange -> {0, 26},
+	PlotLegends -> Placed[LineLegend[{colorW, Directive[Dotted, colorW], Directive[Dashed, colorW]}, 
+		{"Average prey", "Min. prey", "Max. prey"}], Right]]
+
+
+Export["prey_min_max_avg.pdf", %]
+
+
+(* ::Section::Closed:: *)
 (*Make final plots*)
 
 
@@ -680,7 +721,7 @@ fullPopPlots = Table[
 {i, 2}]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Assemble the plots into a figure*)
 
 
@@ -709,7 +750,7 @@ Spacings -> {2, 1}]
 Export["bifurcation_diagram.pdf", %]
 
 
-(* ::Subsubsection:: *)
+(* ::Subsubsection::Closed:: *)
 (*Assemble a supplementary figure*)
 
 
