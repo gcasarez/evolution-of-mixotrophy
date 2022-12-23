@@ -527,14 +527,13 @@ Return[{retentionVsTime, replicationVsTime, timeVsTime, cyclingVsTime}]]
 classifyOutcome[{retention_, replication_}] :=
 Which[(replication == "NA" && retention == "NA"), "Extinction", (* NAs indicate extinction *)
 	replication == 0, (* If replication evolves to 0, the mixotroph is either a heterotroph (does not retain plastid) or a strict kleptoplast (always retains plastid) *)
-		Which[retention == 0, "Strict heterotroph",
-		retention == 1, "Obligately kleptoplastidic mixotroph",
-		0 < retention < 1, "No label"],
+		Which[retention == 0, "Strict heterotrophy",
+		retention > 0, "Obligate kleptoplasty"],
 	replication == 1, (* If replication evolves to 1, the mixotroph is either a phototroph (does not retain plastid), a kleptoplastidic phototroph (always retains plastid) or an occasional kleptoplastidic phototroph (sometimes retains plastid *)
-		Which[retention == 0, "Strict phototroph",
-		retention > 0, "Facultatively kleptoplastidic phototroph"],
+		Which[retention == 0, "Strict phototrophy",
+		retention > 0, "Facultative kleptoplasty"],
 	0 < replication < 1, (* If replication is intermediate, the mixotroph is either a heterotroph with some replication ability (does not retain plastid) or unlabeled *)
-		Which[retention == 0, "Heterotroph with latent replication capacity",
+		Which[retention == 0, "Heterotrophy with latent replication capacity",
 		retention > 0, "No label"]] (* We don't have a name for any state where replication is intermediate and retention is > 0 *) 
 
 
@@ -543,7 +542,7 @@ Which[(replication == "NA" && retention == "NA"), "Extinction", (* NAs indicate 
 
 
 (* outcomeLabels = {"Heterotroph", "Strict Kleptoplast", "Phototroph", "Kleptoplastidic Phototroph", "Occasional Kleptoplastidic Phototroph", "Extinction"}; *)
-outcomeLabels = {"Strict heterotroph", "Heterotroph with latent replication capacity", "Obligately kleptoplastidic mixotroph", "Facultatively kleptoplastidic phototroph", "Extinction"};
+outcomeLabels = {"Strict heterotrophy", "Obligate kleptoplasty", "Facultative kleptoplasty", "Extinction", "Heterotrophy with latent replication capacity"};
 
 
 (* ::Text:: *)
@@ -643,13 +642,13 @@ extinctionSimsCE, {2}]
 
 
 (* ::Subsubsection::Closed:: *)
-(*Let's call these simulations "extinction on trajectory toward FKP"*)
+(*Let's call these simulations "extinction on trajectory toward FK"*)
 
 
-outcomesCE = Map[StringReplace["Extinction" -> "Extinction on trajectory toward FKP"], outcomesCE, {2}];
+outcomesCE = Map[StringReplace["Extinction" -> "Extinction on trajectory toward FK"], outcomesCE, {2}];
 
 
-outcomeLabels = StringReplace[outcomeLabels, "Extinction" -> "Extinction on trajectory toward FKP"];
+outcomeLabels = StringReplace[outcomeLabels, "Extinction" -> "Extinction on trajectory toward FK"];
 
 
 (* ::Subsection::Closed:: *)
@@ -660,19 +659,19 @@ outcomeLabels = StringReplace[outcomeLabels, "Extinction" -> "Extinction on traj
 (*Rename heterotrophic phenotypes to "heterotroph"*)
 
 
-outcomesCE = Map[StringReplace["Strict heterotroph" -> "Heterotroph"], outcomesCE, {2}];
-outcomesCE = Map[StringReplace["Heterotroph with latent replication capacity" -> "Heterotroph"], outcomesCE, {2}];
+outcomesCE = Map[StringReplace["Strict heterotrophy" -> "Heterotrophy"], outcomesCE, {2}];
+outcomesCE = Map[StringReplace["Heterotrophy with latent replication capacity" -> "Heterotrophy"], outcomesCE, {2}];
 
 
-outcomeLabels = StringReplace[outcomeLabels, "Strict heterotroph" -> "Heterotroph"];
-outcomeLabels = StringReplace[outcomeLabels, "Heterotroph with latent replication capacity" -> "Heterotroph"];
+outcomeLabels = StringReplace[outcomeLabels, "Strict heterotrophy" -> "Heterotrophy"];
+outcomeLabels = StringReplace[outcomeLabels, "Heterotrophy with latent replication capacity" -> "Heterotrophy"];
 
 
 (* ::Text:: *)
 (*Find their positions in the list of outcomes*)
 
 
-hPositions = Flatten[Position[outcomeLabels, "Heterotroph"]];
+hPositions = Flatten[Position[outcomeLabels, "Heterotrophy"]];
 
 
 (* ::Text:: *)
@@ -721,6 +720,9 @@ LegendMarkers -> myMarkers,
 LabelStyle -> {Black, "Arial", 12}]
 
 
+outcomeLabels
+
+
 (* ::Subsection::Closed:: *)
 (*Plot everything but facultatively kleptoplastidic phototrophy and extinction*)
 
@@ -756,3 +758,6 @@ PlotMarkers -> {myMarkers[[2]], None, myMarkers[[3]], myMarkers[[2]]}]
 
 Legended[Show[linePlotCE, fkpOutcome], myLegend]
 Export["evolution_from_heteroptrophy_vs_pP_light25_ce.pdf", %]
+
+
+
