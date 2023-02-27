@@ -2,6 +2,18 @@
 (* ::Package:: *)
 
 (* ::Section::Closed:: *)
+(*Load packages*)
+
+
+(* ::Text:: *)
+(*For analyzing the interpolating functions returned by numerical integration.*)
+
+
+Needs["DifferentialEquations`InterpolatingFunctionAnatomy`"];
+ParallelNeeds["DifferentialEquations`InterpolatingFunctionAnatomy`"];
+
+
+(* ::Section::Closed:: *)
 (*Model equations*)
 
 
@@ -57,7 +69,7 @@ kappa[kW_, kH_, kP_, kH2_, kP2_, w_, h_, p_, h2_, p2_]:=
 kW * w + kH * h + kP * p + kH2 * h2 + kP2 * p2 
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Set default options for analyses*)
 
 
@@ -127,7 +139,7 @@ Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -
 	Options[NDSolve], Options[NMinimize], Options[NMaximize], Options[FindRoot]];
 
 
-(* ::Section::Closed:: *)
+(* ::Section:: *)
 (*Ecological dynamics*)
 
 
@@ -235,6 +247,60 @@ If[extinction,
 		
 (* Return the average population sizes and whether mixotroph went extinct *)
 Return[minMixotroph]]
+
+
+(* ::Subsection:: *)
+(*Function to find the average fraction of consumers in the heterotrophic state, with no mutant present*)
+
+
+averageHeterotrophicFraction[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
+Module[{ecoDynamics, extinction, averageHeterotrophFraction},
+
+(* Get the ecological dynamics *)
+{ecoDynamics, extinction} = residentEcoDynamics[retention, replication, surfaceLight, initialPrey, initialHeterotroph, initialPhototroph, opts];
+
+
+(* If the mixotroph went extinct, the mixotroph population sizes are 0. Maybe want to calculate the average prey population size with no mixotrophs, starting from initialPrey? Don't do this now *)
+If[extinction,
+	averageHeterotrophFraction = "Unknown",
+
+(* If the mixotroph did not go extinct, calculate the average ecological state. Average the value over the last 1000 simulated time steps *)
+
+averageHeterotrophFraction = 
+NIntegrate[(h[t] / (h[t] + p[t])) /. ecoDynamics, {t, 3000, 4000}, Evaluate[FilterRules[{opts}, Options[NIntegrate]]]]/(4000 - 3000)];
+	
+(* Return the average population sizes and whether mixotroph went extinct *)
+Return[{extinction, averageHeterotrophFraction}]]
+
+
+(* ::Subsection:: *)
+(*Function to find minimum & maximum consumer population sizes*)
+
+
+consumerMinMax[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
+Module[{ecoDynamics, extinction, last1000days, minMaxHeterotroph, minMaxPhototroph, minMaxConsumer, minMaxHFraction},
+
+(* Get the ecological dynamics *)
+{ecoDynamics, extinction} = residentEcoDynamics[retention, replication, surfaceLight, initialPrey, initialHeterotroph, initialPhototroph, opts];
+
+
+(* If the mixotroph went extinct, the mixotroph population sizes are 0. *)
+If[extinction,
+	minMaxHeterotroph = minMaxPhototroph = minMaxConsumer = {0, 0},
+
+(* If the mixotroph did not go extinct, calculate the min & max population sizes. Average the value over the last 1000 simulated days *)
+
+(* Get the last 1000 simulated days for further analysis *)
+last1000days = Table[stateVar -> Pick[InterpolatingFunctionValuesOnGrid[stateVar /. ecoDynamics], 
+		Map[(3000 <= # <= 4000)&, Flatten[InterpolatingFunctionGrid[stateVar /. ecoDynamics], 1]]],
+	{stateVar, {h, p}}];
+
+{minMaxHeterotroph, minMaxPhototroph, minMaxConsumer, minMaxHFraction} = 
+Table[MinMax[stateVar /. last1000days],
+	{stateVar, {h, p, h + p}}]];
+	
+(* Return the average population sizes and whether mixotroph went extinct *)
+Return[{extinction, minMaxHeterotroph, minMaxPhototroph, minMaxConsumer, minMaxHFraction}]]
 
 
 (* ::Subsection::Closed:: *)
@@ -431,10 +497,6 @@ Return[{mutantEcoDynamics, extinction}]]
 (* ::Text:: *)
 (*This function will be used later to calculate the period of resident population cycling.*)
 (*We need the period to more accurately calculate resident growth rate, so that we can measure mutant population changes over a whole number of cycles.*)
-
-
-Needs["DifferentialEquations`InterpolatingFunctionAnatomy`"];
-ParallelNeeds["DifferentialEquations`InterpolatingFunctionAnatomy`"];
 
 
 (* ::Text:: *)

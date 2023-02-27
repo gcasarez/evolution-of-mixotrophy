@@ -650,6 +650,181 @@ Export["vector_magnitude_plots.pdf", compiledVectorMagnitudePlots]
 
 
 (* ::Section::Closed:: *)
+(*Supplementary plot showing fraction of consumers in heterotrophic state*)
+
+
+(* ::Subsection::Closed:: *)
+(*Find the fraction of the consumer population in the heterotrophic state*)
+
+
+(* ::Subsubsection::Closed:: *)
+(*No attack trade-off*)
+
+
+heterotrophFractionCE = ParallelTable[Join[{light, retention, replication}, averageHeterotrophicFraction[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> False]],
+{light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+heterotrophFractionCE = Flatten[heterotrophFractionCE, {{1}, {2, 3}, {4}}];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Attack trade-off*)
+
+
+heterotrophFractionCEAR = ParallelTable[Join[{light, retention, replication}, averageHeterotrophicFraction[retention, replication, light, 4, 1, 1, PrecisionGoal -> 6, AccuracyGoal -> 6, conversionTradeOff -> True, attackTradeOff -> True]],
+{light, lightLevels}, {retention, 0, 1, 1/10}, {replication, 0, 1, 1/10}];
+
+
+heterotrophFractionCEAR = Flatten[heterotrophFractionCEAR, {{1}, {2,3}, {4}}];
+
+
+(* ::Subsection::Closed:: *)
+(*Plot heterotrophic fraction*)
+
+
+(* ::Subsubsection::Closed:: *)
+(*Color function*)
+
+
+hFractionColors[p_] := ColorData[{"BeachColors", "Reverse"}][0.9 * p^2]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Plots*)
+
+
+hFractionPlotsCE = Table[Show[Graphics[Inset[
+	Rasterize[ListDensityPlot[heterotrophFractionCE[[i]][[All, {2, 3, 5}]], 
+	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1, 
+	ColorFunction -> hFractionColors, ColorFunctionScaling -> False,
+	PlotRangePadding -> 0, ImagePadding -> 0, ImageMargins -> 0, FrameLabel -> None, Frame -> None]],
+	
+	{0, 0}, {0, 0}, Scaled[1/1.1]], PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.05, ImagePadding -> Full], 
+	Frame -> True, FrameStyle -> Black, LabelStyle -> {Black, "Arial", 12}, ImageSize -> 72*2.25],
+
+{i, Length[heterotrophFractionCE]}]
+
+
+hFractionPlotsCEAR = Table[Show[Graphics[Inset[
+	Rasterize[ListDensityPlot[heterotrophFractionCEAR[[i]][[All, {2, 3, 5}]], 
+	PlotRange -> {{0, 1}, {0, 1}, Full}, InterpolationOrder -> 1, 
+	ColorFunction -> hFractionColors, ColorFunctionScaling -> False,
+	PlotRangePadding -> 0, ImagePadding -> 0, ImageMargins -> 0, FrameLabel -> None, Frame -> None]],
+	
+	{0, 0}, {0, 0}, Scaled[1/1.1]], PlotRange -> {{0, 1}, {0, 1}}, PlotRangePadding -> 0.05, ImagePadding -> Full], 
+	Frame -> True, FrameStyle -> Black, LabelStyle -> {Black, "Arial", 12}, ImageSize -> 72*2.25],
+
+{i, Length[heterotrophFractionCEAR]}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Combine plots with extinction markers (made above)*)
+
+
+hFractionLabeledPlotsCE = MapThread[Show[{#1, #2}, 
+	ImagePadding -> {{Automatic, 5}, {Automatic, 8}}, Background -> None]&,
+	{hFractionPlotsCE, extinctionPlotCE}];
+	
+hFractionLabeledPlotsCE = MapThread[
+	Labeled[#1, 
+		Pane[Style[#2, FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], ImageSize -> 160, Alignment -> Left],
+		{Top, Left}]&,
+	{hFractionLabeledPlotsCE, {"(A)", "(B)", "(C)"}}]
+
+
+hFractionLabeledPlotsCEAR = MapThread[Show[{#1, #2}, 
+	ImagePadding -> {{Automatic, 5}, {Automatic, 8}}, Background -> None]&,
+	{hFractionPlotsCEAR, extinctionPlotCEAR}];
+	
+hFractionLabeledPlotsCEAR = MapThread[
+	Labeled[#1, 
+		Pane[Style[#2, FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], ImageSize -> 160, Alignment -> Left],
+		{Top, Left}]&,
+	{hFractionLabeledPlotsCEAR, {"(D)", "(E)", "(F)"}}]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Legend*)
+
+
+hFractionLegend = BarLegend[{hFractionColors[#/100]&, {0, 100}},
+ LegendLabel -> "% Consumers in\nheterotrophic state",
+ LegendMarkerSize -> {20, 72*3},
+ LabelStyle -> {12, Black, "Arial"}];
+
+
+hFractionFullLegend = Framed[Column[{
+	Pane[Style["Legend", FontSize -> 12, FontFamily -> "Arial", FontWeight -> Bold, FontColor -> Black], 
+		ImageSize -> 72 * 1, Alignment -> Center],
+		
+	hFractionLegend,
+	
+	PointLegend[{Black}, 
+	{Pane["Consumer extinction", ImageSize -> 72 * 1]}, 
+	LegendMarkers -> {Graphics[Rectangle[{0, 0}]]},
+	LegendMarkerSize -> {16},
+	LabelStyle -> {Black, "Arial", 12}]},
+	
+	Alignment -> {Center, Center}, Spacings -> 0],
+RoundingRadius -> 10]
+
+
+(* ::Subsubsection::Closed:: *)
+(*Axis labels and grid label*)
+
+
+lightLabel = Graphics[{Thickness[0.0035], Arrowheads[0.025], Line[{{0, 0}, {200, 0}}], Arrow[{{344, 0}, {544, 0}}], 
+Inset[Pane[Style["Increasing light", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], Alignment -> Center]]}]
+
+
+ylabel = Rotate[Pane[Style["Replication (\[Eta])", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12]], Pi/2];
+xlabel = Pane[Style["Retention (\[Phi])", FontColor -> Black, FontFamily -> "Arial", FontSize -> 12], 
+	ImageSize -> 2.5 * 72, Alignment -> {0.2, Center}];
+
+
+(* ::Subsubsection::Closed:: *)
+(*Compile plots into a grid*)
+
+
+compiledhFractionPlots = Grid[{{Grid[ (* We do a grid of a grid to get around an export glitch *)
+	{Join[{ylabel}, hFractionLabeledPlotsCE], 
+	Join[{ylabel}, hFractionLabeledPlotsCEAR],
+	{, xlabel, xlabel, xlabel},
+	{, Pane[Show[lightLabel, ImageSize -> 500], Alignment -> 0.38, ImageSize -> 550], SpanFromLeft, SpanFromLeft}},
+	Alignment -> {Center, Center},
+	Spacings -> {{0(* leftmost space, before grid starts *), 0 (* between ylabels and plots *), 
+		Scaled[1/150] (* between plots *), Scaled[1/150] (* between plots *)}, 
+		{0 (* uppermost space, before grid starts *), Scaled[1/50] (* between plots *), Scaled[1/150] (* between xlabels and plots *),
+		Scaled[1/150] (* between arrow and xlabels *)}}],
+	hFractionFullLegend}}, Spacings -> 1]
+
+
+Export["heterotrophic_fraction_plots.pdf", compiledhFractionPlots]
+
+
+(* ::Subsection::Closed:: *)
+(*Plot time dynamics of cycling population*)
+
+
+cyclingVsTime = residentEcoDynamics[0.6, 0.2, 35, 4, 1, 1, attackTradeOff -> False, conversionTradeOff -> True, PrecisionGoal -> 6, AccuracyGoal -> 6];
+
+
+Plot[Evaluate[{h[t], p[t], w[t]} /. cyclingVsTime[[1]]], {t, 0, 200},
+Frame -> {True, True, False, False},
+FrameLabel -> {"Time (days)", "Population size (cells/\!\(\*SuperscriptBox[\(m\), \(2\)]\))"},
+FrameStyle -> Black,
+ImageSize -> 4 * 72,
+LabelStyle -> {FontSize -> 12, FontColor -> Black, FontFamily -> "Arial"},
+PlotLegends -> {"Consumer (H)", "Consumer (P)", "Prey"},
+PlotRange -> {{0, 200}, {0, 24}},
+PlotStyle -> Map[Directive[{#, Thick}]&, {RGBColor["#fdc552"], RGBColor["#4573ba"], RGBColor["#77aa77"]}]]
+
+
+Export["example_consumer_composition.pdf", %]
+
+
+(* ::Section::Closed:: *)
 (*Extinction at high retention & replication is due to presence of prey*)
 
 
