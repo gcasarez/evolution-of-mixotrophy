@@ -139,7 +139,7 @@ Options[simulateEvolution] = Join[{attackTradeOff -> False, conversionTradeOff -
 	Options[NDSolve], Options[NMinimize], Options[NMaximize], Options[FindRoot]];
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Ecological dynamics*)
 
 
@@ -249,7 +249,7 @@ If[extinction,
 Return[minMixotroph]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to find the average fraction of consumers in the heterotrophic state, with no mutant present*)
 
 
@@ -271,36 +271,6 @@ NIntegrate[(h[t] / (h[t] + p[t])) /. ecoDynamics, {t, 3000, 4000}, Evaluate[Filt
 	
 (* Return the average population sizes and whether mixotroph went extinct *)
 Return[{extinction, averageHeterotrophFraction}]]
-
-
-(* ::Subsection:: *)
-(*Function to find minimum & maximum consumer population sizes*)
-
-
-consumerMinMax[retention_ (* phi *), replication_ (* eta *), surfaceLight_ (* iIn *), initialPrey_ (* W[0] *), initialHeterotroph_ (* H[0] *), initialPhototroph_ (* P[0] *), opts:OptionsPattern[]] :=
-Module[{ecoDynamics, extinction, last1000days, minMaxHeterotroph, minMaxPhototroph, minMaxConsumer, minMaxHFraction},
-
-(* Get the ecological dynamics *)
-{ecoDynamics, extinction} = residentEcoDynamics[retention, replication, surfaceLight, initialPrey, initialHeterotroph, initialPhototroph, opts];
-
-
-(* If the mixotroph went extinct, the mixotroph population sizes are 0. *)
-If[extinction,
-	minMaxHeterotroph = minMaxPhototroph = minMaxConsumer = {0, 0},
-
-(* If the mixotroph did not go extinct, calculate the min & max population sizes. Average the value over the last 1000 simulated days *)
-
-(* Get the last 1000 simulated days for further analysis *)
-last1000days = Table[stateVar -> Pick[InterpolatingFunctionValuesOnGrid[stateVar /. ecoDynamics], 
-		Map[(3000 <= # <= 4000)&, Flatten[InterpolatingFunctionGrid[stateVar /. ecoDynamics], 1]]],
-	{stateVar, {h, p}}];
-
-{minMaxHeterotroph, minMaxPhototroph, minMaxConsumer, minMaxHFraction} = 
-Table[MinMax[stateVar /. last1000days],
-	{stateVar, {h, p, h + p}}]];
-	
-(* Return the average population sizes and whether mixotroph went extinct *)
-Return[{extinction, minMaxHeterotroph, minMaxPhototroph, minMaxConsumer, minMaxHFraction}]]
 
 
 (* ::Subsection::Closed:: *)
@@ -419,7 +389,7 @@ dMutantGrowthdReplication = Mean[derivatives] ] ];
 Return[{dMutantGrowthdRetention, dMutantGrowthdReplication}]]
 
 
-(* ::Section:: *)
+(* ::Section::Closed:: *)
 (*Simulate evolution*)
 
 
@@ -490,7 +460,7 @@ If[extinction == False,
 Return[{mutantEcoDynamics, extinction}]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Helper function that estimate the period of an interpolating function*)
 
 
@@ -580,7 +550,7 @@ interpolatingFunctionPeaks[ifun_] :=
 	Return[peakLocations]]
 
 
-(* ::Subsection:: *)
+(* ::Subsection::Closed:: *)
 (*Function to simulate evolution *)
 
 
