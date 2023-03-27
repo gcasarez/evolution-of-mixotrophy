@@ -656,22 +656,22 @@ outcomeLabels = StringReplace[outcomeLabels, "Extinction" -> "Extinction on traj
 
 
 (* ::Text:: *)
-(*Rename heterotrophic phenotypes to "heterotroph"*)
+(*Rename heterotrophic phenotypes to "phagotrophy"*)
 
 
-outcomesCE = Map[StringReplace["Strict heterotrophy" -> "Heterotrophy"], outcomesCE, {2}];
-outcomesCE = Map[StringReplace["Heterotrophy with latent replication capacity" -> "Heterotrophy"], outcomesCE, {2}];
+outcomesCE = Map[StringReplace["Strict heterotrophy" -> "Phagotrophy"], outcomesCE, {2}];
+outcomesCE = Map[StringReplace["Heterotrophy with latent replication capacity" -> "Phagotrophy"], outcomesCE, {2}];
 
 
-outcomeLabels = StringReplace[outcomeLabels, "Strict heterotrophy" -> "Heterotrophy"];
-outcomeLabels = StringReplace[outcomeLabels, "Heterotrophy with latent replication capacity" -> "Heterotrophy"];
+outcomeLabels = StringReplace[outcomeLabels, "Strict heterotrophy" -> "Phagotrophy"];
+outcomeLabels = StringReplace[outcomeLabels, "Heterotrophy with latent replication capacity" -> "Phagotrophy"];
 
 
 (* ::Text:: *)
 (*Find their positions in the list of outcomes*)
 
 
-hPositions = Flatten[Position[outcomeLabels, "Heterotrophy"]];
+hPositions = Flatten[Position[outcomeLabels, "Phagotrophy"]];
 
 
 (* ::Text:: *)
@@ -758,6 +758,9 @@ PlotMarkers -> {myMarkers[[2]], None, myMarkers[[3]], myMarkers[[2]]}]
 
 Legended[Show[linePlotCE, fkpOutcome], myLegend]
 Export["evolution_from_heteroptrophy_vs_pP_light25_ce.pdf", %]
+
+
+
 
 
 
