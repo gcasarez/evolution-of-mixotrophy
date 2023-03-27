@@ -113,7 +113,7 @@ linePlots = MapThread[
 		PlotRangePadding -> {10, 0.05},
 		PlotLabel -> "Evolution to extinction:\n" <> #2,
 		Frame -> {True, True, False, False},
-		FrameLabel -> {"Light (\[Mu]mol photons \!\(\*SuperscriptBox[\(m\), \(-2\)]\) \!\(\*SuperscriptBox[\(s\), \(-1\)]\))", If[#2 == "No trade-off", "Fraction of simulations", None]},
+		FrameLabel -> {"Light (\[Mu]mol photons \!\(\*SuperscriptBox[\(m\), \(-2\)]\) \!\(\*SuperscriptBox[\(s\), \(-1\)]\))", If[#2 == "No trade-off", "Fraction extinct", None]},
 		PlotLegends -> If[#2 == "Attack trade-off", {"Phototroph does not eat", "Phototroph eats"}, None],
 		LabelStyle -> {FontSize -> 12, FontColor -> Black},
 		PlotStyle -> {noEatingColor, Directive[eatingColor, Dashed]},
